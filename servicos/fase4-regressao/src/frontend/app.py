@@ -62,11 +62,10 @@ def render_home():
 
     estado_atual_simulacao = "indisponivel"
     try:
-        from src.frontend.scheduler import estado_simulacao, iniciar_scheduler
+        from src.frontend.scheduler import estado_simulacao
         from src.db.database import validar_banco
         if estado_simulacao(st.session_state["scheduler_holder"]) != "desativada":
             validar_banco()
-        iniciar_scheduler(st.session_state["scheduler_holder"])
         estado_atual_simulacao = estado_simulacao(st.session_state["scheduler_holder"])
     except Exception as e:
         st.session_state["scheduler_holder"]["erro"] = "Simulação indisponível. Confira o banco e a configuração."

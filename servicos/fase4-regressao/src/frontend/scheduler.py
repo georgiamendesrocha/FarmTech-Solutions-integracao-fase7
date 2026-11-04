@@ -59,7 +59,7 @@ def _gerar_leitura() -> dict:
 
 def estado_simulacao(scheduler_holder: dict) -> str:
     """Resume configuração, falhas e execução real para as páginas do painel."""
-    if os.getenv("FARMTECH_SIMULACAO", "1") == "0":
+    if os.getenv("FARMTECH_SIMULACAO", "1") == "0" and os.getenv("FARMTECH_INTEGRACAO") != "1":
         return "desativada"
     if scheduler_holder.get("erro"):
         return "indisponivel"
@@ -71,7 +71,7 @@ def estado_simulacao(scheduler_holder: dict) -> str:
     return "parada"
 
 
-def iniciar_scheduler(scheduler_holder: dict) -> None:
+def iniciar_scheduler(scheduler_holder: dict, *, manual: bool = False) -> None:
     """
     Inicia uma instância por processo e associa o holder da sessão a ela.
     Um objeto previamente encerrado é substituído, permitindo reinício seguro.
@@ -82,7 +82,12 @@ def iniciar_scheduler(scheduler_holder: dict) -> None:
     global _SCHEDULER, _INICIADO_EM
     if not isinstance(scheduler_holder, dict):
         raise ValueError("Estado do scheduler inválido.")
-    if os.getenv("FARMTECH_SIMULACAO", "1") == "0":
+    if manual:
+        from farmtech_integracao.demo import demo_path
+        from src.db.database import resolve_db_path
+        if os.getenv("FARMTECH_INTEGRACAO") != "1" or resolve_db_path() != demo_path().resolve():
+            raise ValueError("Simulacao restrita ao banco de demonstracao.")
+    elif os.getenv("FARMTECH_SIMULACAO", "1") == "0":
         encerrar_scheduler(scheduler_holder)
         scheduler_holder.pop("erro", None)
         return

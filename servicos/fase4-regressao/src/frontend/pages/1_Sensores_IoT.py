@@ -15,7 +15,7 @@ import streamlit as st
 from farmtech_integracao.ui import info_card
 from src.db.database import get_leituras, get_ultima_leitura, validar_leitura
 from src.frontend.feedback import erro_publico
-from src.frontend.scheduler import INTERVALO, UMIDADE_LIMIAR, estado_simulacao
+from src.frontend.scheduler import INTERVALO, UMIDADE_LIMIAR, estado_simulacao, iniciar_scheduler, encerrar_scheduler
 
 st.set_page_config(page_title="Sensores IoT — FarmTech", layout="wide")
 
@@ -23,26 +23,44 @@ st.title("Sensores IoT")
 st.caption("Leituras registradas/simuladas do prototipo ESP32/Wokwi, armazenadas pelo scheduler")
 
 # ── Botao de atualizar ───────────────────────────────────────────────────────
-col_btn, col_status = st.columns([1, 4])
-with col_btn:
+holder = st.session_state.setdefault("scheduler_holder", {})
+estado = estado_simulacao(holder)
+
+col_atualizar, col_iniciar, col_parar = st.columns(3)
+
+with col_atualizar:
     if st.button("Atualizar leituras"):
         st.rerun()
 
-with col_status:
-    sched = st.session_state.get("scheduler_holder", {})
-    estado = estado_simulacao(sched)
-    if estado == "ativa":
-        st.success(f"Scheduler ativo — registrando leituras simuladas a cada {INTERVALO}s")
-    elif estado == "pausada":
-        st.info("Simulação pausada — novos ciclos de leituras simuladas estão suspensos.")
-    elif estado == "desativada":
-        info_card("Simulação desativada por configuração.")
-    elif estado == "indisponivel":
-        st.warning("Scheduler inativo. Confira o banco e a configuração da simulação.")
-    else:
-        st.info("Scheduler parado — não está em execução.")
+with col_iniciar:
+    if st.button("Iniciar simulação", disabled=estado == "ativa"):
+        try:
+            from src.db.database import validar_banco
+            validar_banco()
+            iniciar_scheduler(holder, manual=True)
+            st.rerun()
+        except Exception as exc:
+            erro_publico("Não foi possível iniciar a simulação.", exc)
 
-# ── Dados ────────────────────────────────────────────────────────────────────
+with col_parar:
+    if st.button("Parar simulação", disabled=estado not in ("ativa", "pausada")):
+        try:
+            encerrar_scheduler(holder)
+            st.rerun()
+        except Exception as exc:
+            erro_publico("Não foi possível parar a simulação.", exc)
+
+estado = estado_simulacao(holder)
+if estado == "ativa":
+    st.success(f"Simulação ativa. Intervalo de {INTERVALO} segundos.")
+elif estado == "pausada":
+    st.info("Simulação pausada.")
+elif estado == "indisponível":
+    st.warning("Simulação indisponível.")
+else:
+    info_card("Simulação parada.")
+
+# Dados
 try:
     leituras = get_leituras(limite=200)
     ultima = get_ultima_leitura()
@@ -53,7 +71,7 @@ except Exception as e:
     st.stop()
 
 if not leituras:
-    st.warning("Nenhuma leitura registrada disponivel. Execute scripts/init_db.py primeiro.")
+    st.warning("Nenhuma leitura registrada disponível. Execute scripts/init_db.py primeiro.")
     st.stop()
 
 df = pd.DataFrame(leituras)
@@ -65,8 +83,10 @@ except (ValueError, TypeError) as e:
 df = df.sort_values(["ts", "id"])
 
 # ── Indicadores da ultima leitura ────────────────────────────────────────────
-st.markdown("### Ultima Leitura Registrada")
+st.markdown("### Última Leitura Registrada")
 if ultima:
+    horario = pd.to_datetime(ultima["ts"], utc=True).tz_convert("America/Bahia")
+    st.caption(f"Última leitura: {horario:%d/%m/%Y %H:%M:%S} (horário da Bahia)")
     c1, c2, c3, c4, c5 = st.columns(5)
     c1.metric("Umidade (%)", f"{ultima['umidade']:.1f}")
     c2.metric("Temperatura (C)", f"{ultima['temp_c']:.1f}")

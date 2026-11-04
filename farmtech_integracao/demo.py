@@ -42,7 +42,7 @@ def prepare_demo() -> Result:
 def configure_dashboard() -> None:
     """Configuração antes dos imports F4; não cria banco nem carrega modelos."""
     if os.getenv("FARMTECH_INTEGRACAO") == "1":
-        os.environ["FARMTECH_SIMULACAO"] = "0"
-        os.environ.setdefault("DB_PATH", str(demo_path()))
+        os.environ.setdefault("FARMTECH_SIMULACAO", "0")
+        os.environ["DB_PATH"] = str(demo_path())
     else:
         os.environ.setdefault("FARMTECH_SIMULACAO", "0")

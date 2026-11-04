@@ -1,0 +1,36 @@
+{
+  "fonte": "Instituto Nacional de Meteorologia (INMET), dados históricos observados",
+  "url": "https://portal.inmet.gov.br/uploads/dadoshistoricos/2025.zip",
+  "arquivo_estacao": "2025/INMET_SE_SP_A701_SAO PAULO - MIRANTE_01-01-2025_A_31-12-2025.CSV",
+  "arquivo_zip_sha256": "14988d0b736ba969b48881589f602f3a6d7e97b95bd1de934456851fdac2cb89",
+  "arquivo_estacao_sha256": "1eac048271dd0339613149e4638b293f5b627c847980a2b0853c725217e0a314",
+  "arquivo_normalizado": "inmet_sp_a701_2025.csv",
+  "arquivo_normalizado_sha256": "b227d9699d79148083d64002608c4be028d20e1e2015fadb2a63a1899dd0f1b7",
+  "station": "SAO PAULO - MIRANTE",
+  "station_code": "A701",
+  "uf": "SP",
+  "latitude": -23.4962888,
+  "longitude": -46.6200666,
+  "altitude_m": 785.64,
+  "inicio_utc": "2025-01-01T00:00:00+00:00",
+  "fim_utc": "2025-12-31T23:00:00+00:00",
+  "frequencia": "horária, conforme Hora UTC do arquivo",
+  "unidades": {
+    "temperatura_ar": "°C",
+    "precipitacao": "mm por hora",
+    "umidade_relativa_ar": "%"
+  },
+  "tratamento": [
+    "Selecionado somente o CSV oficial da estação A701 dentro do ZIP.",
+    "Campos decimais com vírgula convertidos para ponto.",
+    "Sentinela -9999 e campos vazios mantidos como ausentes.",
+    "Sem imputação; timestamps normalizados para UTC."
+  ],
+  "observacoes": 8713,
+  "limitacoes": [
+    "Observação meteorológica de estação; não é medição de umidade do solo.",
+    "Estação São Paulo - Mirante; não representa necessariamente a propriedade FarmTech.",
+    "Dados meteorológicos não foram combinados aos sensores IoT simulados."
+  ],
+  "atualizado_em_utc": "2026-11-01T21:23:54.597758+00:00"
+}

@@ -1,0 +1,160 @@
+Arquivo CSV usado: dados/previsao_tempo/previsao_tempo.csv 
+
+=== Análise de previsão do tempo ===
+Número de linhas: 168 
+Número de colunas: 10 
+
+Primeiras 6 linhas:
+   city country  latitude longitude              ts_iso temp_c umidade rain_mm
+1 Irecê  Brasil -11.30417 -41.85583 2026-10-31 00:00:00   25.5      55       0
+2 Irecê  Brasil -11.30417 -41.85583 2026-10-31 01:00:00   24.5      61       0
+3 Irecê  Brasil -11.30417 -41.85583 2026-10-31 02:00:00   23.7      64       0
+4 Irecê  Brasil -11.30417 -41.85583 2026-10-31 03:00:00   22.6      68       0
+5 Irecê  Brasil -11.30417 -41.85583 2026-10-31 04:00:00   21.9      71       0
+6 Irecê  Brasil -11.30417 -41.85583 2026-10-31 05:00:00   21.0      76       0
+  wind_ms weathercode
+1    11.7           0
+2    11.2           0
+3    10.3           0
+4     5.0           0
+5     3.1           0
+6     4.5           0
+
+Estrutura dos dados:
+'data.frame':	168 obs. of  10 variables:
+ $ city       : chr  "Irecê" "Irecê" "Irecê" "Irecê" ...
+ $ country    : chr  "Brasil" "Brasil" "Brasil" "Brasil" ...
+ $ latitude   : num  -11.3 -11.3 -11.3 -11.3 -11.3 ...
+ $ longitude  : num  -41.9 -41.9 -41.9 -41.9 -41.9 ...
+ $ ts_iso     : POSIXct, format: "2026-10-31 00:00:00" "2026-10-31 01:00:00" ...
+ $ temp_c     : num  25.5 24.5 23.7 22.6 21.9 21 20.5 20.6 20.4 21 ...
+ $ umidade    : num  55 61 64 68 71 76 82 79 77 77 ...
+ $ rain_mm    : num  0 0 0 0 0 0 0 0 0 0 ...
+ $ wind_ms    : num  11.7 11.2 10.3 5 3.1 4.5 6.5 9.4 10.1 11.1 ...
+ $ weathercode: int  0 0 0 0 0 0 0 0 0 0 ...
+
+Resumo estatístico:
+     city             country             latitude       longitude     
+ Length:168         Length:168         Min.   :-11.3   Min.   :-41.86  
+ Class :character   Class :character   1st Qu.:-11.3   1st Qu.:-41.86  
+ Mode  :character   Mode  :character   Median :-11.3   Median :-41.86  
+                                       Mean   :-11.3   Mean   :-41.86  
+                                       3rd Qu.:-11.3   3rd Qu.:-41.86  
+                                       Max.   :-11.3   Max.   :-41.86  
+     ts_iso                        temp_c         umidade     
+ Min.   :2026-10-31 00:00:00   Min.   :20.40   Min.   :25.00  
+ 1st Qu.:2026-11-01 17:45:00   1st Qu.:23.90   1st Qu.:34.00  
+ Median :2026-11-03 11:30:00   Median :28.05   Median :48.00  
+ Mean   :2026-11-03 11:30:00   Mean   :28.24   Mean   :50.88  
+ 3rd Qu.:2026-11-05 05:15:00   3rd Qu.:32.73   3rd Qu.:66.00  
+ Max.   :2026-11-06 23:00:00   Max.   :36.90   Max.   :88.00  
+    rain_mm           wind_ms        weathercode    
+ Min.   :0.00000   Min.   : 0.500   Min.   : 0.000  
+ 1st Qu.:0.00000   1st Qu.: 8.725   1st Qu.: 0.000  
+ Median :0.00000   Median :10.850   Median : 0.000  
+ Mean   :0.01786   Mean   :11.049   Mean   : 5.839  
+ 3rd Qu.:0.00000   3rd Qu.:13.925   3rd Qu.: 2.000  
+ Max.   :0.30000   Max.   :21.000   Max.   :51.000  
+
+=== Medidas de tendência central e dispersão ===
+
+--- temperatura (°C) ---
+Média         : 28.24
+Mediana        : 28.05
+Moda           : 22.6, 33.5
+Desvio padrão : 4.73
+Variância     : 22.42
+Intervalo      : 20.40 a 36.90
+Quartis / Percentis:
+  0%   : 20.40
+  25%  : 23.90
+  50%  : 28.05
+  75%  : 32.73
+  100% : 36.90
+Percentis 90/95/99:
+  90%  : 34.13
+  95%  : 35.36
+  99%  : 36.60
+
+--- umidade ---
+Média         : 50.88
+Mediana        : 48.00
+Moda           : 37, 54, 45, 31, 30, 25
+Desvio padrão : 18.23
+Variância     : 332.47
+Intervalo      : 25.00 a 88.00
+Quartis / Percentis:
+  0%   : 25.00
+  25%  : 34.00
+  50%  : 48.00
+  75%  : 66.00
+  100% : 88.00
+Percentis 90/95/99:
+  90%  : 78.30
+  95%  : 83.65
+  99%  : 85.33
+
+--- chuva (mm) ---
+Média         : 0.02
+Mediana        : 0.00
+Moda           : 0
+Desvio padrão : 0.06
+Variância     : 0.00
+Intervalo      : 0.00 a 0.30
+Quartis / Percentis:
+  0%   : 0.00
+  25%  : 0.00
+  50%  : 0.00
+  75%  : 0.00
+  100% : 0.30
+Percentis 90/95/99:
+  90%  : 0.03
+  95%  : 0.20
+  99%  : 0.30
+
+--- vento (m/s) ---
+Média         : 11.05
+Mediana        : 10.85
+Moda           : 8.9, 14.4
+Desvio padrão : 3.91
+Variância     : 15.30
+Intervalo      : 0.50 a 21.00
+Quartis / Percentis:
+  0%   : 0.50
+  25%  : 8.73
+  50%  : 10.85
+  75%  : 13.93
+  100% : 21.00
+Percentis 90/95/99:
+  90%  : 16.36
+  95%  : 17.60
+  99%  : 19.93
+
+=== Medidas separatrizes ===
+
+temperatura (°C)
+    0%    25%    50%    75%   100% 
+20.400 23.900 28.050 32.725 36.900 
+
+umidade
+  0%  25%  50%  75% 100% 
+  25   34   48   66   88 
+
+chuva (mm)
+  0%  25%  50%  75% 100% 
+ 0.0  0.0  0.0  0.0  0.3 
+
+vento (m/s)
+    0%    25%    50%    75%   100% 
+ 0.500  8.725 10.850 13.925 21.000 
+
+=== Gráficos salvos em dados/plots/previsao/ ===
+Salvo plot: dados/plots/previsao/grafico_temperatura_c.png 
+Salvo plot: dados/plots/previsao/grafico_umidade.png 
+Salvo plot: dados/plots/previsao/grafico_chuva_mm.png 
+Salvo plot: dados/plots/previsao/grafico_vento_ms.png 
+
+=== Gráficos de regressão salvos em dados/plots/regressao/ ===
+Salvo plot: dados/plots/regressao/regressao_temperatura_c_vs_umidade.png 
+Salvo plot: dados/plots/regressao/regressao_temperatura_c_vs_chuva_mm.png 
+Salvo plot: dados/plots/regressao/regressao_temperatura_c_vs_vento_ms.png 

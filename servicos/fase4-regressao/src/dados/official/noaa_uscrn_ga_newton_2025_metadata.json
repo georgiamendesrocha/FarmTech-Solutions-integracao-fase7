@@ -1,0 +1,34 @@
+{
+  "fonte": "NOAA National Centers for Environmental Information (NCEI), USCRN",
+  "url": "https://www.ncei.noaa.gov/pub/data/uscrn/products/hourly02/2025/CRNH0203-2025-GA_Newton_11_SW.txt",
+  "arquivo_fonte_sha256": "735085d1262507541df3c9696803a6f78b2ccabd74e3bffb47c7601f59cc76d4",
+  "arquivo_normalizado": "noaa_uscrn_ga_newton_2025.csv",
+  "arquivo_normalizado_sha256": "aee9b38f0353a4e8f185e8309153772391f08259b16585c0195347a3f86b26c8",
+  "estacao": "GA Newton 11 SW",
+  "wban": "63829",
+  "latitude": 31.19,
+  "longitude": -84.45,
+  "inicio_utc": "2025-01-01T01:00:00+00:00",
+  "fim_utc": "2026-01-01T00:00:00+00:00",
+  "frequencia": "horária; período de 60 minutos encerrado no timestamp UTC",
+  "unidades": {
+    "umidade_volumetrica_solo": "m³/m³",
+    "temperatura_solo": "°C",
+    "temperatura_ar": "°C",
+    "precipitacao": "mm por hora",
+    "umidade_relativa_ar": "%"
+  },
+  "tratamento": [
+    "Leitura whitespace-delimited de 38 campos conforme HEADERS.txt da USCRN.",
+    "Sentinelas por campo conforme hourly02/README.txt: -9999.0 em temperaturas/chuva/UR; -99.000 em umidade do solo; -99999 em radiação.",
+    "Mantidas apenas linhas com pelo menos uma umidade do solo finita em [0, 1] m³/m³.",
+    "Timestamp mantido em UTC; sem agregação ou imputação."
+  ],
+  "observacoes": 8756,
+  "limitacoes": [
+    "Estação USCRN nos Estados Unidos; não representa a propriedade do projeto.",
+    "Dados de estação meteorológica de referência, não medição do protótipo FarmTech.",
+    "Sem equivalência direta com umidade percentual do protótipo; não comparar escalas."
+  ],
+  "atualizado_em_utc": "2026-11-01T22:41:37.151279+00:00"
+}

@@ -1,0 +1,89 @@
+{
+  "target": "ph",
+  "status": "experimental",
+  "n_amostras": 2200,
+  "n_treino": 1760,
+  "n_teste": 440,
+  "features": [
+    "N",
+    "P",
+    "K",
+    "temperature",
+    "humidity",
+    "rainfall",
+    "label"
+  ],
+  "alvo_excluido_das_features": true,
+  "modelo_selecionado": "Ridge",
+  "selecao": "maior R² médio na validação cruzada estratificada do conjunto de treino",
+  "cv_r2_medio_selecionado": 0.35740090877730146,
+  "teste_reservado": {
+    "mae": 0.4279210985937805,
+    "mse": 0.362534461587942,
+    "rmse": 0.602108347050547,
+    "r2": 0.32910794902476237
+  },
+  "modelos": [
+    {
+      "modelo": "Baseline (média)",
+      "cv_r2_medio": -0.002207335930135823,
+      "teste": {
+        "mae": 0.5621521198370584,
+        "mse": 0.5408498432193122,
+        "rmse": 0.7354249405747075,
+        "r2": -0.0008755002150908631
+      }
+    },
+    {
+      "modelo": "LinearRegression",
+      "cv_r2_medio": 0.35565758659191044,
+      "teste": {
+        "mae": 0.4282454360887197,
+        "mse": 0.3636043374724787,
+        "rmse": 0.6029961338785504,
+        "r2": 0.327128078688238,
+        "params": {}
+      }
+    },
+    {
+      "modelo": "Ridge",
+      "cv_r2_medio": 0.35740090877730146,
+      "teste": {
+        "mae": 0.4279210985937805,
+        "mse": 0.362534461587942,
+        "rmse": 0.602108347050547,
+        "r2": 0.32910794902476237,
+        "params": {
+          "model__alpha": 1.0
+        }
+      }
+    },
+    {
+      "modelo": "RandomForest",
+      "cv_r2_medio": 0.3392266259340876,
+      "teste": {
+        "mae": 0.45213154262168176,
+        "mse": 0.4122375138827892,
+        "rmse": 0.6420572512500651,
+        "r2": 0.23712943049230895,
+        "params": {}
+      }
+    }
+  ],
+  "arquivo_dataset": "Atividade_Cap10_produtos_agricolas.csv",
+  "sha256_dataset": "54a5a6e5408668e668667efc50de2fc867c1b875e0431b4f54dd331b0a109a4e",
+  "sha256_modelo": "0ab712d8a4765a4fddcac4315e9803b9df2e4f8a1e5f1efc789f2e5974166625",
+  "scikit_learn": "1.6.1",
+  "pandas": "2.2.3",
+  "python": "3.11.9",
+  "random_state": 42,
+  "test_size": 0.2,
+  "cv_folds": 5,
+  "treinado_em_utc": "2026-11-01T21:10:09.846554+00:00",
+  "limitacoes": [
+    "Dataset acadêmico de condições agronômicas; não representa validação local de campo.",
+    "Associação estatística não demonstra causalidade nem efeito de manejo.",
+    "Cultura é informada previamente pelo usuário; pH não participa das entradas.",
+    "Uso experimental até validação independente por agrônomos e medições locais."
+  ]
+}

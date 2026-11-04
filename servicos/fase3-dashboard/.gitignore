@@ -1,0 +1,10 @@
+.env
+.venv/
+.ipynb_checkpoints/
+__pycache__/
+*.py[cod]
+*.csv
+!src/dados/historico_irrigacao.csv
+*.tsv
+*.xls
+*.xlsx

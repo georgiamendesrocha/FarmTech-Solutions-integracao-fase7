@@ -1,0 +1,38 @@
+# ============================================================
+# Weather Analytics — Dependências Python
+# Python mínimo: 3.11 (testado em 3.14)
+# ============================================================
+
+# ── API REST ─────────────────────────────────────────────────
+fastapi>=0.111.0
+uvicorn[standard]>=0.29.0        # servidor ASGI (inclui websockets, httptools)
+pydantic>=2.7.0                  # validação e serialização dos schemas
+
+# ── Agendador (coleta a cada 5 min) ──────────────────────────
+apscheduler>=3.10.4,<4           # 4.x tem API incompatível — manter na 3.x
+
+# ── Oracle Database ──────────────────────────────────────────
+oracledb>=2.3.0                  # driver thin — sem Oracle Instant Client
+
+# ── Coleta de dados (Open-Meteo) ─────────────────────────────
+requests>=2.31.0
+
+# ── Dashboard ────────────────────────────────────────────────
+streamlit>=1.35.0
+plotly>=5.18.0                   # gráficos interativos
+kaleido>=0.2.1                  # exportação de gráficos Plotly para PNG
+
+# ── Dados e ML ───────────────────────────────────────────────
+pandas>=2.2.0
+numpy>=2.0.0,<3
+scikit-learn>=1.4.0              # ML: K-Means, Random Forest, Regressão Logística etc.
+matplotlib>=3.8.0                # gráficos do notebook ML
+seaborn>=0.13.0                  # visualizações estatísticas no notebook
+
+# ── Notebook Jupyter (Ir Além) ───────────────────────────────
+notebook>=7.0.0                  # execução local do .ipynb
+ipykernel>=6.0.0                 # kernel Python para Jupyter
+
+# ── Utilitários ──────────────────────────────────────────────
+python-dotenv>=1.0.0             # leitura do .env
+fpdf2>=2.7.0                     # exportar relatório Markdown → PDF (dashboard)

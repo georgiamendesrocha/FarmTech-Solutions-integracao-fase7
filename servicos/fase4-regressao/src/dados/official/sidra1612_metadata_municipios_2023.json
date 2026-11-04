@@ -1,0 +1,26 @@
+{
+  "fonte": "IBGE, Sistema IBGE de Recuperação Automática (SIDRA), tabela 1612",
+  "consulta_nacional": "https://apisidra.ibge.gov.br/values/t/1612/n1/1/v/112/p/1990-2025/c81/2692,2702,2711,2713,2696",
+  "consulta_municipal": "https://apisidra.ibge.gov.br/values/t/1612/n6/all/v/112/p/2023/c81/2692,2702,2711,2713,2696",
+  "variavel": "112 — Rendimento médio da produção",
+  "unidade": "quilogramas por hectare",
+  "culturas": {
+    "2692": "Arroz (em casca)",
+    "2702": "Feijão (em grão)",
+    "2711": "Milho (em grão)",
+    "2713": "Soja (em grão)",
+    "2696": "Cana-de-açúcar"
+  },
+  "periodo_nacional": "1990-2025",
+  "periodo_municipal": 2023,
+  "observacoes_nacionais": 180,
+  "observacoes_municipais": 27820,
+  "arquivo_nacional_sha256": "6612da942b9a2fc0ba8f9a672338fad72610f279a9026912169c0ad57e2382fd",
+  "arquivo_municipal_sha256": "872dfa515b1da2233f897848efe6e50acf1065cc143b53ff34c54d41936473af",
+  "separacao": "estatísticas agrícolas oficiais; nunca combinadas com linhas IoT",
+  "limitacoes": [
+    "Rendimento municipal agregado não é produtividade da propriedade.",
+    "Ausência no SIDRA é mantida como ausente; não imputada."
+  ],
+  "atualizado_em_utc": "2026-11-01T21:30:50.677615+00:00"
+}

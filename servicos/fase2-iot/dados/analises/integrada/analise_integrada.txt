@@ -1,0 +1,189 @@
+Arquivo IoT usado: dados/historico_irrigacao.csv 
+Arquivo de previsao usado: dados/previsao_tempo/previsao_tempo.csv 
+
+=== Resumo do dataset integrado ===
+    ts_iso             t_rel_ms         umidade       temp_c        ldr      
+ Length:5           Min.   :360005   Min.   :40   Min.   :24   Min.   :1001  
+ Class :character   1st Qu.:390005   1st Qu.:40   1st Qu.:24   1st Qu.:1001  
+ Mode  :character   Median :420005   Median :40   Median :24   Median :1001  
+                    Mean   :420005   Mean   :40   Mean   :24   Mean   :1001  
+                    3rd Qu.:450005   3rd Qu.:40   3rd Qu.:24   3rd Qu.:1001  
+                    Max.   :480005   Max.   :40   Max.   :24   Max.   :1001  
+    ph_base         ph_corr            N           P           K    
+ Min.   :10.58   Min.   :9.878   Min.   :0   Min.   :0   Min.   :0  
+ 1st Qu.:10.58   1st Qu.:9.878   1st Qu.:0   1st Qu.:0   1st Qu.:0  
+ Median :10.58   Median :9.878   Median :0   Median :0   Median :0  
+ Mean   :10.58   Mean   :9.878   Mean   :0   Mean   :0   Mean   :0  
+ 3rd Qu.:10.58   3rd Qu.:9.878   3rd Qu.:0   3rd Qu.:0   3rd Qu.:0  
+ Max.   :10.58   Max.   :9.878   Max.   :0   Max.   :0   Max.   :0  
+    bomba_fw forecast_ts_iso    forecast_temp_c forecast_umidade
+ Min.   :1   Length:5           Min.   :25.6    Min.   :62      
+ 1st Qu.:1   Class :character   1st Qu.:25.6    1st Qu.:62      
+ Median :1   Mode  :character   Median :25.6    Median :62      
+ Mean   :1                      Mean   :25.6    Mean   :62      
+ 3rd Qu.:1                      3rd Qu.:25.6    3rd Qu.:62      
+ Max.   :1                      Max.   :25.6    Max.   :62      
+ forecast_rain_mm forecast_wind_ms forecast_weathercode forecast_city     
+ Min.   :0        Min.   :8.8      Min.   :2            Length:5          
+ 1st Qu.:0        1st Qu.:8.8      1st Qu.:2            Class :character  
+ Median :0        Median :8.8      Median :2            Mode  :character  
+ Mean   :0        Mean   :8.8      Mean   :2                              
+ 3rd Qu.:0        3rd Qu.:8.8      3rd Qu.:2                              
+ Max.   :0        Max.   :8.8      Max.   :2                              
+ forecast_country   forecast_latitude forecast_longitude
+ Length:5           Min.   :-11.3     Min.   :-41.86    
+ Class :character   1st Qu.:-11.3     1st Qu.:-41.86    
+ Mode  :character   Median :-11.3     Median :-41.86    
+                    Mean   :-11.3     Mean   :-41.86    
+                    3rd Qu.:-11.3     3rd Qu.:-41.86    
+                    Max.   :-11.3     Max.   :-41.86    
+
+=== Medidas de tendência central e dispersão (integração) ===
+
+--- umidade ---
+Média         : 40.00
+Mediana        : 40.00
+Moda           : 40
+Desvio padrão : 0.00
+Variância     : 0.00
+Intervalo      : 40.00 a 40.00
+Quartis / Percentis:
+  0%   : 40.00
+  25%  : 40.00
+  50%  : 40.00
+  75%  : 40.00
+  100% : 40.00
+Percentis 90/95/99:
+  90%  : 40.00
+  95%  : 40.00
+  99%  : 40.00
+
+--- temperatura (°C) ---
+Média         : 24.00
+Mediana        : 24.00
+Moda           : 24
+Desvio padrão : 0.00
+Variância     : 0.00
+Intervalo      : 24.00 a 24.00
+Quartis / Percentis:
+  0%   : 24.00
+  25%  : 24.00
+  50%  : 24.00
+  75%  : 24.00
+  100% : 24.00
+Percentis 90/95/99:
+  90%  : 24.00
+  95%  : 24.00
+  99%  : 24.00
+
+--- pH corrigido ---
+Média         : 9.88
+Mediana        : 9.88
+Moda           : 9.878
+Desvio padrão : 0.00
+Variância     : 0.00
+Intervalo      : 9.88 a 9.88
+Quartis / Percentis:
+  0%   : 9.88
+  25%  : 9.88
+  50%  : 9.88
+  75%  : 9.88
+  100% : 9.88
+Percentis 90/95/99:
+  90%  : 9.88
+  95%  : 9.88
+  99%  : 9.88
+
+--- temperatura prevista (°C) ---
+Média         : 25.60
+Mediana        : 25.60
+Moda           : 25.6
+Desvio padrão : 0.00
+Variância     : 0.00
+Intervalo      : 25.60 a 25.60
+Quartis / Percentis:
+  0%   : 25.60
+  25%  : 25.60
+  50%  : 25.60
+  75%  : 25.60
+  100% : 25.60
+Percentis 90/95/99:
+  90%  : 25.60
+  95%  : 25.60
+  99%  : 25.60
+
+--- forecast_umidade ---
+Média         : 62.00
+Mediana        : 62.00
+Moda           : 62
+Desvio padrão : 0.00
+Variância     : 0.00
+Intervalo      : 62.00 a 62.00
+Quartis / Percentis:
+  0%   : 62.00
+  25%  : 62.00
+  50%  : 62.00
+  75%  : 62.00
+  100% : 62.00
+Percentis 90/95/99:
+  90%  : 62.00
+  95%  : 62.00
+  99%  : 62.00
+
+--- chuva prevista (mm) ---
+Média         : 0.00
+Mediana        : 0.00
+Moda           : 0
+Desvio padrão : 0.00
+Variância     : 0.00
+Intervalo      : 0.00 a 0.00
+Quartis / Percentis:
+  0%   : 0.00
+  25%  : 0.00
+  50%  : 0.00
+  75%  : 0.00
+  100% : 0.00
+Percentis 90/95/99:
+  90%  : 0.00
+  95%  : 0.00
+  99%  : 0.00
+
+--- vento previsto (m/s) ---
+Média         : 8.80
+Mediana        : 8.80
+Moda           : 8.8
+Desvio padrão : 0.00
+Variância     : 0.00
+Intervalo      : 8.80 a 8.80
+Quartis / Percentis:
+  0%   : 8.80
+  25%  : 8.80
+  50%  : 8.80
+  75%  : 8.80
+  100% : 8.80
+Percentis 90/95/99:
+  90%  : 8.80
+  95%  : 8.80
+  99%  : 8.80
+
+=== Medidas separatrizes ===
+
+umidade
+  0%  25%  50%  75% 100% 
+  40   40   40   40   40 
+
+pH corrigido
+   0%   25%   50%   75%  100% 
+9.878 9.878 9.878 9.878 9.878 
+
+temperatura prevista (°C)
+  0%  25%  50%  75% 100% 
+25.6 25.6 25.6 25.6 25.6 
+
+chuva prevista (mm)
+  0%  25%  50%  75% 100% 
+   0    0    0    0    0 
+
+=== Gráficos de regressão entre IoT e previsão salvos em dados/plots/regressao/ ===
+Regressão ignorada: temp_c sem variação nos dados.
+Regressão ignorada: umidade sem variação nos dados.

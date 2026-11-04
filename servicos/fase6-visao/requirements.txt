@@ -1,0 +1,48 @@
+# Entrega 2: Windows AMD64, Python 3.13.13, processamento em CPU.
+# Versoes verificadas nos metadados de .venv-fase6 em 2026-11-02.
+# Lista selecionada; nao e um pip freeze nem um lockfile de transitivas.
+# Validacao: Requires-Python, tags das wheels, Requires-Dist e pip check.
+# Nao foram executados instalacao limpa, treinamento ou inferencia.
+#
+# Os modulos torch/version.py e torchvision/version.py registram +cpu;
+# os METADATA instalados registram 2.15.0 e 0.29.2, sem esse sufixo.
+# O indice oficial abaixo disponibiliza as wheels CPU correspondentes;
+# ele nao comprova o indice utilizado na instalacao historica.
+--extra-index-url https://download.pytorch.org/whl/cpu
+
+# Imports diretos do notebook e backend Keras do modelo preservado.
+tensorflow==2.21.0
+keras==3.15.1
+torch==2.15.0
+torchvision==0.29.2
+ultralytics==8.4.198
+numpy==2.5.4
+opencv-python==5.0.0.93
+matplotlib==3.11.2
+Pillow==13.0.0
+
+# Dependencias auxiliares do carregamento YOLOv5, inclusive 4add2aff.
+# Essa revisao e codigo obtido pelo torch.hub no notebook, nao uma
+# versao do pacote ultralytics nem uma dependencia pip adicional.
+pandas==3.1.0
+PyYAML==6.0.3
+requests==2.34.2
+scipy==1.18.1
+seaborn==0.13.2
+psutil==7.2.2
+packaging==26.3
+setuptools==84.2.1
+ultralytics-thop==2.2.4
+
+# Persistencia do artefato Keras e kernel para execucao do notebook.
+h5py==3.14.0
+ipykernel==7.4.0
+
+# Limites de escopo e reprodutibilidade:
+# - A YOLO padrao ainda carrega codigo da branch principal pelo Hub.
+# - Celulas de instalacao/checagem automatica do notebook e do Hub
+#   podem modificar dependencias quando executadas; nao foram rodadas.
+# - Os pins descrevem o ambiente atual, nao todas as saidas historicas.
+# - Entrega 1 e Ir Alem 2 mantem os fluxos documentados no Colab/Drive,
+#   com GPU T4 e dependencias proprias (incluindo sklearn no Ir Alem).
+#   Esta lista nao pretende substituir esses ambientes.

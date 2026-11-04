@@ -1,0 +1,3 @@
+cultura,forma,area_m2,hectares,alqueires,lados,medidas,espacamento_linhas,dimensao_linhas,num_linhas,comprimento_linha
+Soja,Quadrilátero,200.0,0.02,0.008264462809917356,4,"[20.0, 10.0, 20.0, 10.0]",0.5,10.0,20,20.0
+Soja,Pentágono,172.04774005889672,0.017204774005889673,0.007109410746235402,5,"[10.0, 10.0, 10.0, 10.0, 10.0]",0.5,10.0,20,10.0

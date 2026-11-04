@@ -1,0 +1,15 @@
+{
+  "sha256_dataset_sidra": "6612da942b9a2fc0ba8f9a672338fad72610f279a9026912169c0ad57e2382fd",
+  "sha256_modelo": "9a0f5a86401792fdeb66fe96ebfb669dd52595641e5dcb6cbda3bdfee2a5510d",
+  "periodo_treino": [
+    1990,
+    2025
+  ],
+  "previsao_para": [],
+  "minimo_anos_historicos": 15,
+  "algoritmo": "LinearRegression por cultura",
+  "criterio_selecao": "menor MAE walk-forward que baseline de persistência",
+  "nao_utiliza_rendimento_como_feature": true,
+  "previsao_disponivel": false,
+  "motivo_sem_previsao": "R² temporal reservado não positivo para as culturas avaliadas."
+}

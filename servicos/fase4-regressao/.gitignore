@@ -1,0 +1,56 @@
+# Ambientes locais e caches Python
+.venv*/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+.coverage
+.coverage.*
+htmlcov/
+
+# Configurações privadas; o exemplo público deve permanecer elegível
+.env
+.env.*
+!.env.example
+secrets.toml
+credentials.json
+*.pem
+*.key
+
+# SQLite local e arquivos auxiliares (não excluir datasets CSV ou modelos)
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite-journal
+*.sqlite-wal
+*.sqlite-shm
+*.sqlite3
+*.sqlite3-journal
+*.sqlite3-wal
+*.sqlite3-shm
+
+# Backups operacionais e staging recuperável; preservar antes de limpar
+backups/
+.farmtech-import-*/
+.farmtech-publication/
+/fase4-antes-etapaB.zip
+/fase4-regressao-*.zip
+/F4-02-evidencias-*.zip
+/F4-03-evidencias-*.zip
+
+# Logs, temporários e arquivos locais de editor/sistema
+*.log
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+Thumbs.db
+.DS_Store
+.idea/
+.vscode/

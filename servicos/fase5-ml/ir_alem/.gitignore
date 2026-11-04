@@ -1,0 +1,10 @@
+.pio/
+.vscode/
+venv/
+.venv/
+__pycache__/
+**/__pycache__/
+*.pyc
+.env
+src/secrets.h
+sensor_data.json

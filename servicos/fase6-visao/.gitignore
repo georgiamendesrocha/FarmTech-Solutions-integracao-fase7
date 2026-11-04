@@ -1,0 +1,76 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Ambientes virtuais, incluindo .venv-fase6/
+.venv/
+.venv-*/
+venv/
+env/
+ENV/
+
+# Notebooks auxiliares locais — não fazem parte da entrega
+/EdemirSufiatti_rm571375_pbl_fase6_EXECUTADO.ipynb
+/EdemirSufiatti_rm571375_pbl_fase6_BACKUP_PRE_OUTPUTS.ipynb
+
+# Jupyter / caches
+.ipynb_checkpoints/
+.cache/
+*.cache
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Saídas regeneráveis; evidências finais ficam nos notebooks e em assets/
+/runs/
+/entrega_2/runs/
+/logs/
+
+# Pesos públicos e checkpoints não selecionados continuam ignorados.
+# Preservar somente os modelos treinados selecionados para a solução.
+*.pt
+*.pth
+*.ckpt
+!/entrega_2/modelos/yolov5s_custom_exp60_best.pt
+!/entrega_2/modelos/cnn_do_zero_fase6.keras
+
+# Temporários e backups de edição; notebooks finais não são excluídos.
+/tmp/
+/temp/
+*.tmp
+*.temp
+*.bak
+*.swp
+*.swo
+*~
+~$*
+*.log.tmp
+pip-log.txt
+
+# Arquivos do sistema
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Variáveis de ambiente e segredos locais
+.env
+.env.*
+!.env.example
+.aws/
+.ssh/
+.secrets/
+.netrc
+_netrc
+.pypirc
+credentials.json
+service-account*.json
+token.json
+token.pickle
+*.pem
+*.key
+
+# Dataset, evidências, tabelas, configurações e documentação não são
+# excluídos genericamente por extensão.

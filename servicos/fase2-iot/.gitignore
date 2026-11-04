@@ -1,0 +1,71 @@
+# Compilação PlatformIO
+.pio/
+
+# Configuração local do editor; tarefas compartilhadas podem ser versionadas
+.vscode/*
+!.vscode/tasks.json
+
+# Python: caches, ambientes e relatórios locais
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+env/
+.Python
+.coverage
+htmlcov/
+/tests/.tmp*/
+
+# R: sessões e arquivos gerados localmente
+.Rhistory
+.RData
+.Ruserdata
+.Rproj.user/
+Rplots.pdf
+
+# Dados, análises e gráficos gerados (os já versionados permanecem rastreados)
+/dados/**/*.csv
+/dados/**/*.json
+/dados/analises/**
+# Registros históricos selecionados: somente estes três TXT podem ser versionados
+!/dados/analises/iot/
+!/dados/analises/previsao/
+!/dados/analises/integrada/
+!/dados/analises/iot/analise_historico.txt
+!/dados/analises/previsao/analise_previsao.txt
+!/dados/analises/integrada/analise_integrada.txt
+/dados/plots/
+# Reserva para amostra sintética revisada; os históricos locais continuam ignorados
+!/dados/irrigacao_exemplo.csv
+/dados/**/*.tsv
+/dados/**/*.xls
+/dados/**/*.xlsx
+
+# Credenciais e configurações privadas locais
+.env
+.env.*
+!.env.example
+.aws/
+credentials*.json
+client_secret*.json
+# Protege também formatos de segredo desconhecidos
+secrets.*
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Logs, arquivos temporários e metadados do sistema
+*.log
+*.tmp
+*.temp
+*.bak
+*.swp
+*~
+.DS_Store
+Thumbs.db
+Desktop.ini

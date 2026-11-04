@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+**/__pycache__/
+*.pyc
+.pytest_cache/
+venv/
+.venv/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Secrets / environment
+.env
+.env.*
+secrets.h
+
+# IDE
+.vscode/
+
+# PlatformIO
+.pio/
+
+# Builds / temporary
+build/
+dist/
+cache/
+*.log
+*.tmp
+*.bak
+
+# SQLite / local databases
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3

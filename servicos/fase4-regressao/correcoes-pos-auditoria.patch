@@ -1,0 +1,1021 @@
+diff --git a/src/db/database.py b/src/db/database.py
+--- a/src/db/database.py
++++ b/src/db/database.py
+@@ -220,6 +220,12 @@
+     return [dict(r) for r in rows]
+ 
+ 
++def get_total_previsoes() -> int:
++    """Conta todo o histórico, independentemente do limite de exibição."""
++    with get_connection() as conn:
++        return conn.execute("SELECT COUNT(*) FROM previsoes").fetchone()[0]
++
++
+ def validar_leitura(umidade, temp_c, ldr, ph, n, p, k, bomba_fw, sensor_id=1):
+     from src.validation import numero_finito
+ 
+diff --git a/src/frontend/app.py b/src/frontend/app.py
+--- a/src/frontend/app.py
++++ b/src/frontend/app.py
+@@ -28,11 +28,14 @@
+ if "scheduler_holder" not in st.session_state:
+     st.session_state["scheduler_holder"] = {}
+ 
++estado_atual_simulacao = "indisponivel"
+ try:
+-    from src.frontend.scheduler import iniciar_scheduler
++    from src.frontend.scheduler import estado_simulacao, iniciar_scheduler
+     from src.db.database import validar_banco
+-    validar_banco()
++    if estado_simulacao(st.session_state["scheduler_holder"]) != "desativada":
++        validar_banco()
+     iniciar_scheduler(st.session_state["scheduler_holder"])
++    estado_atual_simulacao = estado_simulacao(st.session_state["scheduler_holder"])
+ except Exception as e:
+     st.session_state["scheduler_holder"]["erro"] = "Simulação indisponível. Confira o banco e a configuração."
+ 
+@@ -54,6 +57,17 @@
+ st.title("FarmTech Solutions")
+ st.subheader("Assistente Agricola Inteligente — Visao Geral")
+ 
++if estado_atual_simulacao == "ativa":
++    st.success("Simulação ativa — scheduler em execução, registrando leituras simuladas.")
++elif estado_atual_simulacao == "pausada":
++    st.info("Simulação pausada — novos ciclos de leituras simuladas estão suspensos.")
++elif estado_atual_simulacao == "desativada":
++    st.info("Simulação desativada por configuração.")
++elif estado_atual_simulacao == "indisponivel":
++    st.warning("Simulação indisponível. Confira o banco e a configuração.")
++else:
++    st.info("Simulação parada — scheduler não está em execução.")
++
+ st.markdown(
+     """
+     Plataforma de monitoramento e analise para o agronegocio, integrando leituras
+@@ -110,7 +124,7 @@
+ 
+ cols = st.columns(3)
+ paginas = [
+-    ("Sensores IoT", "Leituras registradas/simuladas do prototipo ESP32/Wokwi com scheduler ativo."),
++    ("Sensores IoT", "Leituras registradas/simuladas do prototipo ESP32/Wokwi e estado da simulação."),
+     ("Analise Exploratoria", "Heatmaps, distribuicoes por cultura, boxplots e scatter entre variaveis."),
+     ("Pipeline ML", "Comparacao de modelos, metricas, residuos e feature importance."),
+     ("Previsao Agricola", "Previsoes originais de chuva e umidade e estimativa experimental de pH."),
+diff --git a/src/frontend/pages/1_Sensores_IoT.py b/src/frontend/pages/1_Sensores_IoT.py
+--- a/src/frontend/pages/1_Sensores_IoT.py
++++ b/src/frontend/pages/1_Sensores_IoT.py
+@@ -14,7 +14,7 @@
+ 
+ from src.db.database import get_leituras, get_ultima_leitura, validar_leitura
+ from src.frontend.feedback import erro_publico
+-from src.frontend.scheduler import INTERVALO
++from src.frontend.scheduler import INTERVALO, UMIDADE_LIMIAR, estado_simulacao
+ 
+ st.set_page_config(page_title="Sensores IoT — FarmTech", layout="wide")
+ 
+@@ -29,12 +29,17 @@
+ 
+ with col_status:
+     sched = st.session_state.get("scheduler_holder", {})
+-    if sched.get("scheduler") and sched["scheduler"].running:
++    estado = estado_simulacao(sched)
++    if estado == "ativa":
+         st.success(f"Scheduler ativo — registrando leituras simuladas a cada {INTERVALO}s")
+-    elif sched.get("erro"):
++    elif estado == "pausada":
++        st.info("Simulação pausada — novos ciclos de leituras simuladas estão suspensos.")
++    elif estado == "desativada":
++        st.info("Simulação desativada por configuração.")
++    elif estado == "indisponivel":
+         st.warning("Scheduler inativo. Confira o banco e a configuração da simulação.")
+     else:
+-        st.info("Scheduler nao iniciado ainda.")
++        st.info("Scheduler parado — não está em execução.")
+ 
+ # ── Dados ────────────────────────────────────────────────────────────────────
+ try:
+@@ -77,8 +82,8 @@
+ with tab1:
+     fig = px.line(df, x="ts", y="umidade", title="Umidade registrada ao longo do tempo (%)",
+                   labels={"ts": "Timestamp", "umidade": "Umidade (%)"})
+-    fig.add_hline(y=60, line_dash="dash", line_color="orange",
+-                  annotation_text="Limiar irrigacao (60%)")
++    fig.add_hline(y=UMIDADE_LIMIAR, line_dash="dash", line_color="orange",
++                  annotation_text=f"Limiar irrigacao ({UMIDADE_LIMIAR:g}%)")
+     st.plotly_chart(fig, use_container_width=True)
+ 
+ with tab2:
+diff --git a/src/frontend/pages/5_Recomendacoes.py b/src/frontend/pages/5_Recomendacoes.py
+--- a/src/frontend/pages/5_Recomendacoes.py
++++ b/src/frontend/pages/5_Recomendacoes.py
+@@ -15,13 +15,13 @@
+ from src.db.database import get_culturas, get_ultima_leitura, media_cultura, validar_leitura
+ from src.ml.train import carregar_modelo, preparar_entrada_historica
+ from src.frontend.feedback import erro_publico, HISTORICAL_LIMITATION, COMPATIBILITY_LIMITATION
++from src.frontend.scheduler import UMIDADE_LIMIAR
+ 
+ st.set_page_config(page_title="Recomendacoes — FarmTech", layout="wide")
+ 
+ st.title("Recomendacoes de Manejo")
+-st.caption("Cruzamento da previsao ML com as ultimas leituras registradas dos sensores do prototipo")
++st.caption("Leituras registradas/simuladas do prototipo ESP32/Wokwi; nao sao medicoes atuais de uma fazenda real.")
+ 
+-UMIDADE_LIMIAR = 60.0
+ PH_FAIXAS: dict[str, tuple[float, float]] = {
+     "rice": (6.0, 7.0),
+     "maize": (5.8, 7.0),
+@@ -80,15 +80,20 @@
+ 
+ # ── Formulario ────────────────────────────────────────────────────────────────
+ st.markdown("### Selecione a Cultura e Parametros de Previsao")
++st.caption(
++    "N, P e K sao parametros de cenario editaveis, independentes dos indicadores binarios de presenca/ausencia "
++    "do sensor simulado. Os valores em kg/ha usados como entrada do modelo nao sao medicoes quantitativas "
++    "desse sensor nem doses recomendadas de adubacao."
++)
+ 
+ with st.form("form_recom"):
+     col1, col2 = st.columns(2)
+     with col1:
+         cultura = st.selectbox("Cultura", culturas)
+-        n = st.slider("N (kg/ha)", 0, 140, int(ultima.get("n", 0)) * 40 + 40)
+-        p = st.slider("P (kg/ha)", 5, 145, int(ultima.get("p", 0)) * 40 + 30)
++        n = st.slider("N (kg/ha)", 0, 140, 40)
++        p = st.slider("P (kg/ha)", 5, 145, 30)
+     with col2:
+-        k = st.slider("K (kg/ha)", 5, 205, int(ultima.get("k", 0)) * 40 + 20)
++        k = st.slider("K (kg/ha)", 5, 205, 20)
+         temperatura = st.slider("Temperatura (C)", 5.0, 50.0, min(50.0, max(5.0, float(ultima.get("temp_c", 25.0)))), step=0.5)
+         ph_entrada = st.slider("pH do solo", 3.5, 10.0, min(10.0, max(3.5, float(ultima.get("ph", 6.5)))), step=0.1)
+ 
+@@ -114,45 +119,42 @@
+ c2.metric("Proxy de necessidade hidrica", f"{prev_rainfall:.1f} mm")
+ c3.metric("pH registrado", f"{ultima['ph']:.3f}")
+ c4.metric("Umidade esperada pela cultura", f"{prev_humidity:.1f} %")
++st.caption(
++    "rainfall e um proxy academico de necessidade hidrica; nao representa volume direto de irrigacao "
++    "nem permite estimar tempo de acionamento da bomba."
++)
+ 
+ # ── Recomendacoes ─────────────────────────────────────────────────────────────
+ st.markdown("---")
+ st.markdown("### Recomendacoes de Manejo")
+ st.caption("Recomendacoes simplificadas do prototipo; nao substituem validacao agronomica.")
++st.caption(
++    "Medias de NPK do dataset academico e faixas de pH sao referencias indicativas do prototipo. "
++    "Nao constituem recomendacao de adubacao ou prescricao validada de correcao do solo; "
++    "decisoes de manejo exigem analise do solo e avaliacao agronomica local."
++)
+ 
+ recomendacoes: list[dict] = []
+ 
+-# 1. Bomba de irrigacao
++# 1. Indicativo demonstrativo de umidade
+ umid_sensor = float(ultima["umidade"])
+-if prev_rainfall > 150 and umid_sensor < UMIDADE_LIMIAR:
+-    deficit = UMIDADE_LIMIAR - umid_sensor
+-    tempo_est = round(deficit * 0.5, 1)
+-    recomendacoes.append({
+-        "tipo": "error",
+-        "titulo": "Atencao para Irrigacao",
+-        "texto": (
+-            f"O proxy de necessidade hidrica esta alto ({prev_rainfall:.1f} mm) e a umidade "
+-            f"registrada pelo sensor do prototipo ({umid_sensor:.1f}%) esta abaixo do limiar ({UMIDADE_LIMIAR}%). "
+-            f"Deficit de umidade: {deficit:.1f}%. "
+-            f"Estimativa simplificada do prototipo para tempo de irrigacao: {tempo_est} minutos."
+-        ),
+-    })
+-elif umid_sensor < UMIDADE_LIMIAR:
++if umid_sensor < UMIDADE_LIMIAR:
+     deficit = UMIDADE_LIMIAR - umid_sensor
+     recomendacoes.append({
+         "tipo": "warning",
+         "titulo": "Umidade Abaixo do Limiar",
+         "texto": (
+             f"Umidade registrada pelo sensor do prototipo: {umid_sensor:.1f}% (limiar: {UMIDADE_LIMIAR}%). "
+-            f"Deficit: {deficit:.1f}%. Avalie a necessidade de irrigacao suplementar."
++            f"Diferenca: {deficit:.1f} pontos percentuais. Indicativo demonstrativo do prototipo, "
++            "sem estimativa de tempo ou volume operacional de irrigacao."
+         ),
+     })
+ else:
+     recomendacoes.append({
+         "tipo": "success",
+-        "titulo": "Umidade Adequada",
++        "titulo": "Umidade no Limiar ou Acima",
+         "texto": (
+-            f"Umidade registrada pelo sensor do prototipo ({umid_sensor:.1f}%) acima do limiar ({UMIDADE_LIMIAR}%). "
++            f"Umidade registrada pelo sensor do prototipo ({umid_sensor:.1f}%) no limiar ou acima ({UMIDADE_LIMIAR}%). "
+             "Nao ha indicativo imediato de irrigacao pelo criterio simplificado do prototipo."
+         ),
+     })
+@@ -167,34 +169,34 @@
+     n_med = medias["n_med"] or 0
+     p_med = medias["p_med"] or 0
+     k_med = medias["k_med"] or 0
+-    tol = 0.25  # ± 25% de tolerancia
++    tol = 0.25  # Criterio demonstrativo de comparacao; nao e faixa de adubacao.
+ 
+     ajustes = []
+     if n is not None and abs(n - n_med) / (n_med + 1) > tol:
+-        direcao = "aumentar" if n < n_med else "reduzir"
+-        ajustes.append(f"N: {n:.0f} kg/ha (media da cultura: {n_med:.0f} kg/ha) — avaliar {direcao} aplicacao")
++        direcao = "abaixo" if n < n_med else "acima"
++        ajustes.append(f"N: {n:.0f} kg/ha no cenario, {direcao} da media do dataset academico para a cultura ({n_med:.0f} kg/ha)")
+     if p is not None and abs(p - p_med) / (p_med + 1) > tol:
+-        direcao = "aumentar" if p < p_med else "reduzir"
+-        ajustes.append(f"P: {p:.0f} kg/ha (media da cultura: {p_med:.0f} kg/ha) — avaliar {direcao} aplicacao")
++        direcao = "abaixo" if p < p_med else "acima"
++        ajustes.append(f"P: {p:.0f} kg/ha no cenario, {direcao} da media do dataset academico para a cultura ({p_med:.0f} kg/ha)")
+     if k is not None and abs(k - k_med) / (k_med + 1) > tol:
+-        direcao = "aumentar" if k < k_med else "reduzir"
+-        ajustes.append(f"K: {k:.0f} kg/ha (media da cultura: {k_med:.0f} kg/ha) — avaliar {direcao} aplicacao")
++        direcao = "abaixo" if k < k_med else "acima"
++        ajustes.append(f"K: {k:.0f} kg/ha no cenario, {direcao} da media do dataset academico para a cultura ({k_med:.0f} kg/ha)")
+ 
+     if ajustes:
+         recomendacoes.append({
+             "tipo": "warning",
+-            "titulo": "Atencao para Macronutrientes",
+-            "texto": "Comparando com a media do dataset agronomico da cultura selecionada:\n\n" + "\n\n".join(f"- {a}" for a in ajustes),
++            "titulo": "Comparacao Descritiva de NPK",
++            "texto": "Diferencas entre o cenario e a media do dataset academico da cultura selecionada:\n\n" + "\n\n".join(f"- {a}" for a in ajustes),
+         })
+     else:
+         recomendacoes.append({
+             "tipo": "success",
+-            "titulo": "Macronutrientes Dentro da Faixa Esperada",
+-            "texto": f"N, P e K estao dentro da faixa esperada para {cultura} (± 25% da media do dataset agronomico).",
++            "titulo": "Comparacao Descritiva de NPK",
++            "texto": f"Os parametros NPK do cenario estao proximos das medias do dataset academico para {cultura} pelo criterio demonstrativo de comparacao; isso nao comprova adequacao agronomica.",
+         })
+ 
+ else:
+-    st.info("Médias de nutrientes incompletas; adequação de N, P e K não avaliada.")
++    st.info("Medias de nutrientes incompletas; comparacao de N, P e K indisponivel.")
+ 
+ # 3. Correcao de pH
+ ph_sensor = float(ultima["ph"])
+@@ -207,7 +209,7 @@
+         "texto": (
+             f"pH registrado: {ph_sensor:.3f} | Faixa de referencia para {cultura}: {ph_min}–{ph_max}. "
+             f"Deficit: {ph_min - ph_sensor:.3f} unidades. "
+-            "Avalie correcao de pH com orientacao tecnica/agronomica antes de definir calagem."
++            "Referencia indicativa do prototipo; a diferenca nao determina necessidade ou dose de corretivos."
+         ),
+     })
+ elif ph_sensor > ph_max:
+@@ -217,7 +219,7 @@
+         "texto": (
+             f"pH registrado: {ph_sensor:.3f} | Faixa de referencia para {cultura}: {ph_min}–{ph_max}. "
+             f"Excesso: {ph_sensor - ph_max:.3f} unidades. "
+-            "Avalie correcao de pH com orientacao tecnica/agronomica antes de definir enxofre agricola ou materia organica."
++            "Referencia indicativa do prototipo; a diferenca nao determina necessidade ou dose de corretivos."
+         ),
+     })
+ else:
+diff --git a/src/frontend/pages/6_Historico_Previsoes.py b/src/frontend/pages/6_Historico_Previsoes.py
+--- a/src/frontend/pages/6_Historico_Previsoes.py
++++ b/src/frontend/pages/6_Historico_Previsoes.py
+@@ -13,7 +13,7 @@
+ import plotly.express as px
+ import streamlit as st
+ 
+-from src.db.database import get_previsoes
++from src.db.database import get_previsoes, get_total_previsoes
+ from src.frontend.feedback import erro_publico
+ 
+ st.set_page_config(page_title="Historico de Previsoes — FarmTech", layout="wide")
+@@ -35,6 +35,7 @@
+ # ── Carregar dados ───────────────────────────────────────────────────────────
+ try:
+     previsoes = get_previsoes(limite=500)
++    total_previsoes = get_total_previsoes()
+ except Exception as e:
+     erro_publico("Histórico indisponível ou inválido. Confira a configuração e o banco.", e)
+     st.stop()
+@@ -44,6 +45,10 @@
+     st.stop()
+ 
+ df = pd.DataFrame(previsoes)
++st.caption(
++    f"{len(df)} previsoes mais recentes carregadas de {total_previsoes} existentes no banco. "
++    "Filtros, graficos e CSV consideram os registros carregados."
++)
+ try:
+     df["ts"] = pd.to_datetime(df["ts"], format="mixed", utc=True, errors="raise")
+ except (ValueError, TypeError) as e:
+@@ -64,9 +69,9 @@
+ # ── Metricas gerais ───────────────────────────────────────────────────────────
+ st.markdown("### Resumo")
+ c1, c2, c3 = st.columns(3)
+-c1.metric("Total de previsoes", len(df))
+-c2.metric("Tipos de previsao distintos", df["target"].nunique())
+-c3.metric("Modelos utilizados", df["modelo"].nunique())
++c1.metric("Total de previsoes", total_previsoes)
++c2.metric("Tipos nas previsoes carregadas", df["target"].nunique())
++c3.metric("Modelos nas previsoes carregadas", df["modelo"].nunique())
+ 
+ # ── Grafico de evolucao temporal ─────────────────────────────────────────────
+ st.markdown("### Evolucao Temporal das Previsoes")
+diff --git a/src/frontend/scheduler.py b/src/frontend/scheduler.py
+--- a/src/frontend/scheduler.py
++++ b/src/frontend/scheduler.py
+@@ -18,6 +18,7 @@
+ sys.path.insert(0, str(ROOT))
+ 
+ import numpy as np
++from apscheduler.schedulers.base import STATE_PAUSED
+ from dotenv import load_dotenv
+ 
+ load_dotenv(ROOT / ".env")
+@@ -56,6 +57,20 @@
+     return dict(umidade=umidade, temp_c=temp_c, ldr=ldr, ph=ph, n=n, p=p, k=k, bomba_fw=bomba_fw)
+ 
+ 
++def estado_simulacao(scheduler_holder: dict) -> str:
++    """Resume configuração, falhas e execução real para as páginas do painel."""
++    if os.getenv("FARMTECH_SIMULACAO", "1") == "0":
++        return "desativada"
++    if scheduler_holder.get("erro"):
++        return "indisponivel"
++    sched = scheduler_holder.get("scheduler")
++    if sched is not None and sched.running:
++        if getattr(sched, "state", None) == STATE_PAUSED:
++            return "pausada"
++        return "ativa"
++    return "parada"
++
++
+ def iniciar_scheduler(scheduler_holder: dict) -> None:
+     """
+     Inicia uma instância por processo e associa o holder da sessão a ela.
+@@ -69,6 +84,7 @@
+         raise ValueError("Estado do scheduler inválido.")
+     if os.getenv("FARMTECH_SIMULACAO", "1") == "0":
+         encerrar_scheduler(scheduler_holder)
++        scheduler_holder.pop("erro", None)
+         return
+     if not math.isfinite(UMIDADE_LIMIAR) or not 0 <= UMIDADE_LIMIAR <= 100 or INTERVALO <= 0:
+         raise ValueError("Configuração da simulação inválida.")
+diff --git a/src/ml/productivity.py b/src/ml/productivity.py
+--- a/src/ml/productivity.py
++++ b/src/ml/productivity.py
+@@ -81,6 +81,25 @@
+     models_dir: Path = MODELS_DIR,
+ ) -> dict[str, Any]:
+     """Avalia regressão temporal contra persistência e gera previsão anual agregada."""
++    models_dir = Path(models_dir).resolve()
++    preserved_dir = (ROOT / "src" / "ml" / "models").resolve()
++    output_paths = [models_dir] + [
++        (models_dir / filename).resolve()
++        for filename in (
++            MODEL_FILENAME, METRICS_FILENAME, FORECAST_FILENAME, METADATA_FILENAME
++        )
++    ]
++    existing_outputs = [path for path in output_paths[1:] if path.is_file()]
++    if any(path.is_relative_to(preserved_dir) for path in output_paths) or any(
++        output.samefile(artifact)
++        for artifact in preserved_dir.rglob("*")
++        if artifact.is_file()
++        for output in existing_outputs
++    ):
++        raise RuntimeError(
++            "Artefatos de produtividade preservados; avaliações exigem "
++            "diretório de saída isolado fora de src/ml/models."
++        )
+     data_path = Path(data_path)
+     frame = carregar_sidra(data_path)
+     frame = frame[
+@@ -201,7 +220,6 @@
+         ),
+     }
+ 
+-    models_dir = Path(models_dir)
+     models_dir.mkdir(parents=True, exist_ok=True)
+     model_path = models_dir / MODEL_FILENAME
+     metrics_path = models_dir / METRICS_FILENAME
+diff --git a/tests/test_history_audit.py b/tests/test_history_audit.py
+new file mode 100644
+--- /dev/null
++++ b/tests/test_history_audit.py
+@@ -0,0 +1,137 @@
++"""Histórico acima do limite de tela, sempre com SQLite e interface isolados."""
++
++import csv
++from datetime import datetime, timedelta, timezone
++import io
++import json
++import os
++from pathlib import Path
++import sqlite3
++import subprocess
++import sys
++import tempfile
++import unittest
++from unittest.mock import patch
++
++from test_frontend_safety import _copy_module
++
++
++def _history_fixture(path, count=650):
++    with sqlite3.connect(path) as connection:
++        connection.execute("""
++            CREATE TABLE previsoes (
++                id INTEGER PRIMARY KEY, ts TEXT NOT NULL, modelo TEXT NOT NULL,
++                target TEXT NOT NULL, valor_previsto REAL NOT NULL,
++                parametros_entrada TEXT NOT NULL
++            )
++        """)
++        for identity in range(1, count + 1):
++            instant = datetime(2026, 11, 1, tzinfo=timezone.utc) + timedelta(seconds=identity // 2)
++            # Pares têm o mesmo instante, com formatos históricos diferentes.
++            timestamp = (instant.isoformat() if identity % 2 else
++                         instant.replace(tzinfo=None).isoformat(sep=" "))
++            parameters = ({"label": "apple"}, {"cultura": "rice"},
++                          {"label": "banana", "cultura": "banana"})[identity % 3]
++            connection.execute(
++                "INSERT INTO previsoes VALUES (?, ?, 'Ridge', ?, 6.2, ?)",
++                (identity, timestamp, "ph" if identity % 2 else "rainfall", json.dumps(parameters)),
++            )
++
++
++def _worker(root):
++    os.chdir(root)
++    sys.path.insert(0, str(root))
++    os.environ["DB_PATH"] = str(root / "fixture.db")
++    os.environ["FARMTECH_SIMULACAO"] = "0"
++    _history_fixture(root / "fixture.db")
++
++    import streamlit as st
++    from streamlit.testing.v1 import AppTest
++
++    def snapshot(at):
++        return {
++            "exceptions": [item.message for item in at.exception],
++            "errors": [item.value for item in at.error],
++            "captions": [item.value for item in at.caption],
++            "metrics": {item.label: item.value for item in at.metric},
++            "table": at.dataframe[0].value.to_dict("records"),
++            "downloads": len(at.get("download_button")),
++        }
++
++    with patch("streamlit.download_button", wraps=st.download_button) as download:
++        at = AppTest.from_file(str(root / "src/frontend/pages/6_Historico_Previsoes.py"),
++                               default_timeout=45).run()
++        initial = snapshot(at)
++        initial["csv"] = download.call_args.kwargs["data"].decode("utf-8")
++        at.multiselect[0].set_value(["ph"])
++        at.slider[0].set_value(500).run()
++        filtered = snapshot(at)
++        filtered["csv"] = download.call_args.kwargs["data"].decode("utf-8")
++
++    print("F402_HISTORY " + json.dumps({"initial": initial, "filtered": filtered}, ensure_ascii=False))
++
++
++class HistoryAuditTests(unittest.TestCase):
++    def test_sqlite_count_includes_predictions_beyond_loaded_limit(self):
++        from src.db import database as db
++
++        with tempfile.TemporaryDirectory(prefix="farmtech-history-db-") as temporary:
++            path = Path(temporary) / "fixture.db"
++            _history_fixture(path)
++            with patch.object(db, "DB_PATH", str(path)):
++                self.assertEqual(db.get_total_previsoes(), 650)
++                rows = db.get_previsoes(limite=500)
++                self.assertEqual(len(rows), 500)
++                self.assertEqual([row["id"] for row in rows], list(range(650, 150, -1)))
++                self.assertEqual(db.get_previsoes(limite=0), [])
++                self.assertEqual(db.get_total_previsoes(), 650)
++
++    def test_count_does_not_create_missing_database(self):
++        from src.db import database as db
++
++        with tempfile.TemporaryDirectory(prefix="farmtech-history-missing-") as temporary:
++            path = Path(temporary) / "missing.db"
++            with patch.object(db, "DB_PATH", str(path)), self.assertRaises(sqlite3.OperationalError):
++                db.get_total_previsoes()
++            self.assertFalse(path.exists())
++
++    def test_interface_distinguishes_total_and_loaded_and_preserves_filtered_csv(self):
++        with tempfile.TemporaryDirectory(prefix="farmtech-history-ui-") as temporary:
++            root = Path(temporary) / "module"
++            root.mkdir()
++            _copy_module(root)
++            result = subprocess.run(
++                [sys.executable, "-X", "utf8", "-B", str(Path(__file__).resolve()), "--worker", str(root)],
++                cwd=temporary,
++                env=dict(os.environ, FARMTECH_SIMULACAO="0", PYTHONDONTWRITEBYTECODE="1", PYTHONUTF8="1"),
++                capture_output=True, text=True, encoding="utf-8", timeout=120,
++            )
++            self.assertEqual(result.returncode, 0, result.stdout[-2000:] + result.stderr[-4000:])
++            payload = next(line.removeprefix("F402_HISTORY ") for line in result.stdout.splitlines()
++                           if line.startswith("F402_HISTORY "))
++            snapshots = json.loads(payload)
++
++        for name, snapshot in snapshots.items():
++            with self.subTest(view=name):
++                self.assertEqual(snapshot["exceptions"], [])
++                self.assertEqual(snapshot["errors"], [])
++                self.assertEqual(snapshot["metrics"]["Total de previsoes"], "650")
++                self.assertTrue(any("500 previsoes mais recentes carregadas de 650" in caption
++                                    for caption in snapshot["captions"]))
++                self.assertEqual(snapshot["downloads"], 1)
++                exported = list(csv.DictReader(io.StringIO(snapshot["csv"])))
++                expected = list(range(650, 550, -1)) if name == "initial" else list(range(649, 150, -2))
++                self.assertEqual([row["ID"] for row in snapshot["table"]], expected)
++                self.assertEqual([int(row["id"]) for row in exported], expected)
++                self.assertEqual({row["Cultura"] for row in snapshot["table"]}, {"apple", "rice", "banana"})
++                self.assertEqual([row["cultura"] for row in exported],
++                                 [row["Cultura"] for row in snapshot["table"]])
++                if name == "filtered":
++                    self.assertEqual({row["target"] for row in exported}, {"ph"})
++
++
++if __name__ == "__main__":
++    if len(sys.argv) > 1 and sys.argv[1] == "--worker":
++        _worker(Path(sys.argv[2]))
++    else:
++        unittest.main()
+diff --git a/tests/test_productivity_audit.py b/tests/test_productivity_audit.py
+new file mode 100644
+--- /dev/null
++++ b/tests/test_productivity_audit.py
+@@ -0,0 +1,136 @@
++import hashlib
++import json
++import os
++import tempfile
++import unittest
++from pathlib import Path
++from unittest.mock import patch
++
++import pandas as pd
++
++from src.data_sources import SIDRA_OUTPUT_COLUMNS
++from src.ml import productivity
++
++
++def _snapshot(directory: Path) -> dict[str, str]:
++    return {
++        str(path.relative_to(directory)): hashlib.sha256(path.read_bytes()).hexdigest()
++        for path in directory.rglob("*")
++        if path.is_file()
++    }
++
++
++def _fixture(path: Path, *, declining_test: bool = False) -> None:
++    rows = []
++    for year in range(1990, 2026):
++        value = 3000 + (year - 1990) * 55
++        if declining_test and year >= 2021:
++            value = 4300 - (year - 2021) * 300
++        rows.append({
++            "codigo_geografico": "1", "geografia": "Brasil",
++            "municipio": None, "uf": None, "nivel_geografico": "brasil",
++            "codigo_cultura": "2692", "cultura": "Arroz (em casca)",
++            "ano": year, "rendimento_kg_ha": value, "unidade": "kg/ha",
++        })
++    pd.DataFrame(rows, columns=SIDRA_OUTPUT_COLUMNS).to_csv(path, index=False)
++
++
++class ProductivityAuditTests(unittest.TestCase):
++    def _assert_refused(self, models_dir: Path | None = None) -> None:
++        arguments = {"data_path": Path("missing-productivity-audit.csv")}
++        if models_dir is not None:
++            arguments["models_dir"] = models_dir
++        with (
++            patch.object(productivity, "carregar_sidra") as load,
++            patch.object(productivity.joblib, "dump") as dump,
++            patch.object(Path, "mkdir") as mkdir,
++            patch.object(Path, "write_text") as write_text,
++            patch.object(pd.DataFrame, "to_csv") as to_csv,
++        ):
++            with self.assertRaisesRegex(RuntimeError, "preservados"):
++                productivity.avaliar_produtividade(**arguments)
++            for operation in (load, dump, mkdir, write_text, to_csv):
++                operation.assert_not_called()
++
++    def test_packaged_directory_and_aliases_are_refused_without_changes(self):
++        preserved = productivity.MODELS_DIR
++        before = _snapshot(preserved)
++        for destination in (
++            None,
++            preserved,
++            Path(os.path.relpath(preserved)),
++            preserved.parent / "models" / ".." / "models",
++            preserved / "audit-output-must-not-be-created",
++        ):
++            with self.subTest(destination=destination):
++                self._assert_refused(destination)
++        self.assertEqual(_snapshot(preserved), before)
++
++    def test_directory_link_to_preserved_fixture_is_refused(self):
++        with tempfile.TemporaryDirectory() as temp:
++            root = Path(temp)
++            preserved = root / "src" / "ml" / "models"
++            preserved.mkdir(parents=True)
++            (preserved / productivity.MODEL_FILENAME).write_bytes(b"preserved-model")
++            before = _snapshot(preserved)
++            alias = root / "external-alias"
++            if os.name == "nt":
++                import _winapi
++
++                _winapi.CreateJunction(str(preserved), str(alias))
++            else:
++                alias.symlink_to(preserved, target_is_directory=True)
++            with patch.object(productivity, "ROOT", root):
++                self._assert_refused(alias)
++                self._assert_refused(alias / "nested")
++            self.assertEqual(_snapshot(preserved), before)
++
++    def test_external_hardlink_to_any_preserved_artifact_is_refused(self):
++        with tempfile.TemporaryDirectory() as temp:
++            root = Path(temp)
++            preserved = root / "src" / "ml" / "models"
++            preserved.mkdir(parents=True)
++            artifact = preserved / "historical-model.joblib"
++            artifact.write_bytes(b"preserved-model")
++            before = _snapshot(preserved)
++            output = root / "external-output"
++            output.mkdir()
++            os.link(artifact, output / productivity.MODEL_FILENAME)
++            with patch.object(productivity, "ROOT", root):
++                self._assert_refused(output)
++            self.assertEqual(_snapshot(preserved), before)
++
++    def test_external_temporary_directory_can_produce_validated_forecast(self):
++        with tempfile.TemporaryDirectory() as temp:
++            root = Path(temp)
++            data_path = root / "fixture.csv"
++            _fixture(data_path)
++            output = root / "external-output"
++            results = productivity.avaliar_produtividade(data_path, output)
++            self.assertTrue(results["previsao_disponivel"])
++            forecasts = productivity.carregar_previsoes_produtividade(output)
++            self.assertIsNotNone(forecasts)
++            self.assertEqual(forecasts["ano_previsao"].tolist(), [2026])
++
++    def test_failed_temporal_performance_keeps_forecasts_unavailable(self):
++        with tempfile.TemporaryDirectory() as temp:
++            root = Path(temp)
++            data_path = root / "fixture.csv"
++            _fixture(data_path, declining_test=True)
++            output = root / "external-output"
++            results = productivity.avaliar_produtividade(data_path, output)
++            crop = results["culturas"]["2692"]
++            self.assertEqual(crop["metodo_selecionado"], "Regressão linear temporal")
++            self.assertLessEqual(crop["teste_temporal"]["metodo_selecionado"]["r2"], 0)
++            self.assertFalse(results["previsao_disponivel"])
++            self.assertFalse(crop["previsao_disponivel"])
++            self.assertIsNone(productivity.carregar_previsoes_produtividade(output))
++            metadata = json.loads(
++                (output / productivity.METADATA_FILENAME).read_text(encoding="utf-8")
++            )
++            self.assertFalse(metadata["previsao_disponivel"])
++            self.assertEqual(metadata["previsao_para"], [])
++
++
++if __name__ == "__main__":
++    unittest.main()
+diff --git a/tests/test_recommendations_audit.py b/tests/test_recommendations_audit.py
+new file mode 100644
+--- /dev/null
++++ b/tests/test_recommendations_audit.py
+@@ -0,0 +1,145 @@
++"""Regressões pós-auditoria em cópias isoladas, sem leituras atuais de fazenda."""
++
++import json
++import os
++from pathlib import Path
++import subprocess
++import sys
++import tempfile
++import unittest
++
++from test_frontend_safety import _copy_module
++
++
++def _worker(scenario, root):
++    os.chdir(root)
++    sys.path.insert(0, str(root))
++    os.environ.update(DB_PATH=str(root / "fixture.db"), FARMTECH_SIMULACAO="0", UMIDADE_LIMIAR="72.5")
++    from scripts.init_db import inicializar_banco
++    inicializar_banco(root / "fixture.db")
++    from src.db import database as db
++    from streamlit.testing.v1 import AppTest
++
++    def run(*, bits=0, humidity=65.0, ph=6.5):
++        with db.get_connection() as connection:
++            connection.execute(
++                "UPDATE leituras_sensores SET n=?, p=?, k=?, umidade=?, ph=?",
++                (bits, bits, bits, humidity, ph),
++            )
++        return AppTest.from_file(str(root / "src/frontend/pages/5_Recomendacoes.py"), default_timeout=45).run()
++
++    def submit(at, values=None, culture="rice"):
++        at.selectbox[0].set_value(culture)
++        if values is not None:
++            for field, value in zip(at.slider, values):
++                field.set_value(value)
++        next(button for button in at.button if button.label == "Gerar Recomendacoes").click().run()
++        return snapshot(at)
++
++    def snapshot(at):
++        return {
++            "exceptions": [item.message for item in at.exception],
++            "errors": [item.value for item in at.error],
++            "warnings": [item.value for item in at.warning],
++            "success": [item.value for item in at.success],
++            "captions": [item.value for item in at.caption],
++            "metrics": {item.label: item.value for item in at.metric},
++            "sliders": {item.label: [item.value, item.proto.min, item.proto.max] for item in at.slider},
++            "rows": db.get_previsoes(),
++        }
++
++    if scenario == "defaults":
++        result = [snapshot(run(bits=bits)) for bits in (0, 1)]
++    elif scenario == "comparisons":
++        result = [submit(run(), values=values) for values in ((0, 5, 5), (140, 145, 205))]
++    elif scenario == "near_means":
++        means = db.media_cultura("rice")
++        result = submit(run(), values=[round(means[key]) for key in ("n_med", "p_med", "k_med")])
++    elif scenario == "humidity":
++        result = [submit(run(humidity=value)) for value in (65.0, 72.5, 80.0)]
++    elif scenario == "ph":
++        result = [submit(run(ph=value)) for value in (4.5, 6.5, 9.0)]
++    else:
++        raise ValueError("Cenário desconhecido")
++    print("AUDIT_RESULT " + json.dumps(result, ensure_ascii=True))
++
++
++class RecommendationAuditTests(unittest.TestCase):
++    def run_scenario(self, scenario):
++        with tempfile.TemporaryDirectory(prefix="farmtech-recommendations-audit-") as directory:
++            root = Path(directory) / "module"
++            root.mkdir()
++            _copy_module(root)
++            environment = dict(os.environ, PYTHONDONTWRITEBYTECODE="1", PYTHONUTF8="1", FARMTECH_SIMULACAO="0")
++            result = subprocess.run(
++                [sys.executable, "-X", "utf8", "-B", str(Path(__file__).resolve()), "--worker", scenario, str(root)],
++                cwd=directory, env=environment, capture_output=True, text=True, encoding="utf-8", timeout=120,
++            )
++            self.assertEqual(result.returncode, 0, result.stdout[-2000:] + result.stderr[-4000:])
++            return json.loads(next(line.removeprefix("AUDIT_RESULT ") for line in result.stdout.splitlines() if line.startswith("AUDIT_RESULT ")))
++
++    def assert_valid(self, result):
++        self.assertEqual(result["exceptions"], [])
++        self.assertEqual(result["errors"], [])
++        self.assertEqual(result["rows"], [])
++
++    def test_npk_scenario_defaults_are_independent_of_binary_readings(self):
++        for result in self.run_scenario("defaults"):
++            self.assert_valid(result)
++            for label, expected in {"N (kg/ha)": [40, 0, 140], "P (kg/ha)": [30, 5, 145], "K (kg/ha)": [20, 5, 205]}.items():
++                self.assertEqual(result["sliders"][label], expected)
++            captions = " ".join(result["captions"])
++            self.assertIn("parametros de cenario editaveis", captions)
++            self.assertIn("nao sao medicoes quantitativas", captions)
++            self.assertIn("nao sao medicoes atuais de uma fazenda real", captions)
++
++    def test_npk_at_input_bounds_describe_differences_without_prescribing_fertilizer(self):
++        results = self.run_scenario("comparisons")
++        for result, direction in zip(results, ("abaixo", "acima")):
++            self.assert_valid(result)
++            comparison = next(message for message in result["warnings"] if "Comparacao Descritiva de NPK" in message)
++            self.assertIn(direction + " da media do dataset academico", comparison)
++            self.assertNotIn("aumentar", comparison)
++            self.assertNotIn("reduzir", comparison)
++            self.assertNotIn("aplicacao", comparison)
++            self.assertIn("Nao constituem recomendacao de adubacao", " ".join(result["captions"]))
++
++    def test_npk_near_dataset_mean_does_not_claim_agronomic_adequacy(self):
++        result = self.run_scenario("near_means")
++        self.assert_valid(result)
++        comparison = next(message for message in result["success"] if "Comparacao Descritiva de NPK" in message)
++        self.assertIn("nao comprova adequacao agronomica", comparison)
++        self.assertNotIn("faixa esperada", comparison)
++
++    def test_humidity_uses_configured_threshold_without_operational_time(self):
++        below, equal, above = self.run_scenario("humidity")
++        for result in (below, equal, above):
++            self.assert_valid(result)
++            public = " ".join(result["warnings"] + result["success"] + result["captions"])
++            self.assertIn("72.5%", public)
++            self.assertNotIn("60.0%", public)
++            self.assertNotIn("minutos", public)
++            self.assertIn("rainfall e um proxy academico", public)
++            self.assertIn("nao representa volume direto de irrigacao", public)
++            self.assertIn("Proxy de necessidade hidrica", result["metrics"])
++        self.assertTrue(any("Umidade Abaixo do Limiar" in message for message in below["warnings"]))
++        for result in (equal, above):
++            self.assertTrue(any("Umidade no Limiar ou Acima" in message for message in result["success"]))
++
++    def test_ph_ranges_remain_indicative_without_input_doses(self):
++        for result, expected in zip(self.run_scenario("ph"), ("pH Abaixo", "pH Dentro", "pH Acima")):
++            self.assert_valid(result)
++            public = " ".join(result["warnings"] + result["success"] + result["captions"])
++            self.assertIn(expected, public)
++            self.assertIn("6.0–7.0", public)
++            self.assertIn("faixas de pH sao referencias indicativas", public)
++            self.assertIn("prescricao validada de correcao do solo", public)
++            self.assertNotIn("calagem", public)
++            self.assertNotIn("enxofre", public)
++
++
++if __name__ == "__main__":
++    if len(sys.argv) > 1 and sys.argv[1] == "--worker":
++        _worker(sys.argv[2], Path(sys.argv[3]))
++    else:
++        unittest.main()
+diff --git a/tests/test_scheduler_audit.py b/tests/test_scheduler_audit.py
+new file mode 100644
+--- /dev/null
++++ b/tests/test_scheduler_audit.py
+@@ -0,0 +1,186 @@
++"""Configuração compartilhada e estados públicos, sempre com UI e banco isolados."""
++
++import json
++import os
++from pathlib import Path
++import subprocess
++import sys
++import tempfile
++import threading
++from types import SimpleNamespace
++import unittest
++from unittest.mock import patch
++
++from test_frontend_safety import _copy_module
++
++
++def _worker(scenario, root):
++    os.chdir(root)
++    sys.path.insert(0, str(root))
++    os.environ.update(
++        DB_PATH=str(root / "fixture.db"),
++        FARMTECH_SIMULACAO="0",
++        UMIDADE_LIMIAR="72.5",
++        SCHEDULER_INTERVALO="3600",
++    )
++    from scripts.init_db import inicializar_banco
++    inicializar_banco(root / "fixture.db")
++    from src.db import database as db
++    from src.frontend import scheduler
++    from streamlit.testing.v1 import AppTest
++
++    def run(page, holder=None):
++        app = AppTest.from_file(str(root / "src/frontend" / page), default_timeout=45)
++        if holder is not None:
++            app.session_state["scheduler_holder"] = holder
++        return app.run()
++
++    def snapshot(app):
++        return {
++            "exceptions": [item.message for item in app.exception],
++            "errors": [item.value for item in app.error],
++            "warnings": [item.value for item in app.warning],
++            "success": [item.value for item in app.success],
++            "info": [item.value for item in app.info],
++        }
++
++    initial_readings = len(db.get_leituras(limite=100000))
++    try:
++        if scenario == "home_states":
++            with patch.dict(os.environ, {"FARMTECH_SIMULACAO": "1"}):
++                active = run("app.py")
++                holder = active.session_state["scheduler_holder"]
++                result = {"active": snapshot(active), "running": holder["scheduler"].running}
++                scheduler.encerrar_scheduler()
++                with patch.object(scheduler, "iniciar_scheduler", return_value=None):
++                    result["stopped"] = snapshot(run("app.py", holder))
++                with patch.object(db, "validar_banco", side_effect=ValueError("private-scheduler-failure")):
++                    result["error"] = snapshot(run("app.py"))
++            with patch.object(db, "validar_banco", side_effect=ValueError("private-disabled-db")):
++                result["disabled"] = snapshot(run("app.py", {"erro": "private-stale-error"}))
++        elif scenario == "sensor_threshold":
++            app = run("pages/1_Sensores_IoT.py")
++            result = snapshot(app)
++            result["configured_threshold"] = scheduler.UMIDADE_LIMIAR
++            result["chart"] = json.loads(app.get("plotly_chart")[0].proto.spec)
++        elif scenario == "paused_scheduler":
++            from apscheduler.schedulers.base import STATE_PAUSED
++            with patch.dict(os.environ, {"FARMTECH_SIMULACAO": "1"}):
++                holder = {}
++                scheduler.iniciar_scheduler(holder)
++                producer = holder["scheduler"]
++                producer.pause()
++                result = {
++                    "running_while_paused": producer.running,
++                    "paused_before": producer.state == STATE_PAUSED,
++                    "reported_state": scheduler.estado_simulacao(holder),
++                    "home": snapshot(run("app.py", holder)),
++                    "sensors": snapshot(run("pages/1_Sensores_IoT.py", holder)),
++                    "paused_after": producer.state == STATE_PAUSED,
++                    "same_producer": scheduler._SCHEDULER is producer,
++                }
++        else:
++            raise ValueError("Cenário desconhecido.")
++        result["unchanged_readings"] = len(db.get_leituras(limite=100000)) == initial_readings
++    finally:
++        scheduler.encerrar_scheduler()
++    print("F402_SCHEDULER_RESULT " + json.dumps({
++        "result": result,
++        "threads": [thread.name for thread in threading.enumerate() if thread.name == "APScheduler"],
++    }, ensure_ascii=False))
++
++
++class SchedulerAuditTests(unittest.TestCase):
++    def run_scenario(self, scenario):
++        with tempfile.TemporaryDirectory(prefix="farmtech-scheduler-tests-") as temporary:
++            root = Path(temporary) / "module"
++            root.mkdir()
++            _copy_module(root)
++            env = dict(os.environ, PYTHONDONTWRITEBYTECODE="1", PYTHONUTF8="1")
++            result = subprocess.run(
++                [sys.executable, "-X", "utf8", "-B", str(Path(__file__).resolve()), "--worker", scenario, str(root)],
++                cwd=temporary, env=env, capture_output=True, text=True, encoding="utf-8", timeout=120,
++            )
++            self.assertEqual(result.returncode, 0, result.stdout[-2000:] + result.stderr[-4000:])
++            payload = next(line.removeprefix("F402_SCHEDULER_RESULT ") for line in reversed(result.stdout.splitlines()) if line.startswith("F402_SCHEDULER_RESULT "))
++            response = json.loads(payload)
++            self.assertEqual(response["threads"], [])
++            self.assertTrue(response["result"]["unchanged_readings"])
++            return response["result"]
++
++    def test_home_distinguishes_running_disabled_error_and_stopped(self):
++        result = self.run_scenario("home_states")
++        self.assertTrue(result["running"])
++        expected = {
++            "active": ("success", "Simulação ativa"),
++            "disabled": ("info", "Simulação desativada por configuração"),
++            "error": ("warnings", "Simulação indisponível"),
++            "stopped": ("info", "Simulação parada"),
++        }
++        for state, (level, message) in expected.items():
++            with self.subTest(state=state):
++                screen = result[state]
++                self.assertEqual(screen["exceptions"], [])
++                self.assertEqual(screen["errors"], [])
++                self.assertTrue(any(message in text for text in screen[level]), screen)
++                public = " ".join(text for messages in screen.values() for text in messages)
++                self.assertNotIn("private-", public)
++                if state != "active":
++                    self.assertNotIn("Simulação ativa", public)
++                    self.assertNotIn("scheduler ativo", public)
++
++    def test_sensor_chart_uses_threshold_from_environment(self):
++        result = self.run_scenario("sensor_threshold")
++        self.assertEqual(result["exceptions"], [])
++        self.assertEqual(result["errors"], [])
++        self.assertEqual(result["configured_threshold"], 72.5)
++        layout = result["chart"]["layout"]
++        self.assertEqual(layout["shapes"][0]["y0"], 72.5)
++        self.assertEqual(layout["shapes"][0]["y1"], 72.5)
++        self.assertIn("72.5%", layout["annotations"][0]["text"])
++        self.assertTrue(any("desativada por configuração" in message for message in result["info"]))
++
++    def test_simulated_pump_uses_shared_threshold_including_boundary(self):
++        from src.frontend import scheduler
++        for humidity, expected_pump in ((70.0, 1), (72.5, 0), (75.0, 0)):
++            with self.subTest(humidity=humidity):
++                with patch.object(scheduler, "UMIDADE_LIMIAR", 72.5), patch.object(
++                    scheduler.np.random, "normal", side_effect=[humidity, 25.0, 1800.0, 7.0]
++                ):
++                    reading = scheduler._gerar_leitura()
++                self.assertEqual(reading["umidade"], humidity)
++                self.assertEqual(reading["bomba_fw"], expected_pump)
++
++    def test_real_paused_scheduler_remains_paused_and_ui_never_reports_active(self):
++        result = self.run_scenario("paused_scheduler")
++        self.assertTrue(result["running_while_paused"])
++        self.assertTrue(result["paused_before"])
++        self.assertTrue(result["paused_after"])
++        self.assertTrue(result["same_producer"])
++        self.assertEqual(result["reported_state"], "pausada")
++        for page in ("home", "sensors"):
++            with self.subTest(page=page):
++                screen = result[page]
++                self.assertEqual(screen["exceptions"], [])
++                self.assertEqual(screen["errors"], [])
++                self.assertTrue(any("Simulação pausada" in message for message in screen["info"]))
++                public = " ".join(text for messages in screen.values() for text in messages)
++                self.assertNotIn("Simulação ativa", public)
++                self.assertNotIn("Scheduler ativo", public)
++
++    def test_public_status_requires_running_and_honors_disabled_and_errors(self):
++        from src.frontend import scheduler
++        with patch.dict(os.environ, {"FARMTECH_SIMULACAO": "1"}):
++            self.assertEqual(scheduler.estado_simulacao({}), "parada")
++            self.assertEqual(scheduler.estado_simulacao({"scheduler": SimpleNamespace(running=False)}), "parada")
++            self.assertEqual(scheduler.estado_simulacao({"scheduler": SimpleNamespace(running=True)}), "ativa")
++            self.assertEqual(scheduler.estado_simulacao({"scheduler": SimpleNamespace(running=True), "erro": "failure"}), "indisponivel")
++        with patch.dict(os.environ, {"FARMTECH_SIMULACAO": "0"}):
++            self.assertEqual(scheduler.estado_simulacao({"erro": "old failure"}), "desativada")
++
++
++if __name__ == "__main__":
++    if len(sys.argv) > 1 and sys.argv[1] == "--worker":
++        _worker(sys.argv[2], Path(sys.argv[3]))
++    else:
++        unittest.main()

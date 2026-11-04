@@ -1,0 +1,153 @@
+{
+  "date": "2026-11-03",
+  "test_suites": [
+    {
+      "suite": "integracao",
+      "python": "3.11.9",
+      "tests": 55,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "successful": true,
+      "elapsed_seconds": 20.45,
+      "training_executed": false,
+      "external_network_executed": false
+    },
+    {
+      "suite": "fase1",
+      "python": "3.11.9",
+      "tests": 16,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "successful": true,
+      "elapsed_seconds": 0.0,
+      "training_executed": false,
+      "external_network_executed": false
+    },
+    {
+      "suite": "fase2",
+      "python": "3.11.9",
+      "tests": 40,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 9,
+      "successful": true,
+      "elapsed_seconds": 0.81,
+      "training_executed": false,
+      "external_network_executed": false
+    },
+    {
+      "suite": "fase4",
+      "python": "3.11.9",
+      "tests": 128,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "successful": true,
+      "elapsed_seconds": 142.0,
+      "training_executed": false,
+      "external_network_executed": false
+    }
+  ],
+  "test_totals": {
+    "cases": 239,
+    "passed": 230,
+    "skipped": 9,
+    "failures": 0,
+    "errors": 0
+  },
+  "preserved_artifacts": {
+    "files": 203,
+    "differences": [],
+    "original_f4_pages": 7
+  },
+  "sqlite_demo": {
+    "status": "ok",
+    "message": "Base reconstruída disponível; não representa histórico real recuperado.",
+    "data": {
+      "counts": {
+        "culturas": 22,
+        "sensores": 1,
+        "leituras_sensores": 153,
+        "amostras_agronomicas": 2200,
+        "previsoes": 0
+      }
+    },
+    "source": {
+      "phase": "fase4",
+      "kind": "sqlite",
+      "reconstructed": true
+    }
+  },
+  "http_startup": {
+    "status": "ok",
+    "check": "Streamlit HTTP health",
+    "http_status": 200,
+    "bind": "127.0.0.1",
+    "browser_visual_check": false
+  },
+  "yolo_real_button": {
+    "validation": "real Streamlit button -> adapter -> worker Python3.13.13 -> avaliar_yolo.py",
+    "revision": "4add2aff6e3d926586a3eab4659f3b498dd444a1",
+    "models_preserved": true,
+    "checkout_unchanged": true,
+    "ui_exceptions": 0,
+    "plotly_charts": 1,
+    "result": {
+      "status": "ok",
+      "message": "Avaliação das oito imagens de teste concluída; resultados desta execução.",
+      "data": {
+        "experimento": "nova_avaliacao_independente_yolo",
+        "abordagem": "customizada",
+        "total_imagens": 8,
+        "metricas": {
+          "banana": {
+            "tp": 2,
+            "fp": 1,
+            "fn": 7,
+            "precision": 0.6666666666666666,
+            "recall": 0.2222222222222222,
+            "f1": 0.3333333333333333
+          },
+          "milho": {
+            "tp": 4,
+            "fp": 4,
+            "fn": 3,
+            "precision": 0.5,
+            "recall": 0.5714285714285714,
+            "f1": 0.5333333333333333
+          }
+        },
+        "tempo_medio_ms": 344.71833740826696,
+        "configuracao": {
+          "confianca": 0.25,
+          "iou_associacao": 0.5,
+          "tamanho": 640
+        },
+        "ambiente": {
+          "python": "3.13.13",
+          "dispositivo": "CPU"
+        },
+        "revisao": "4add2aff6e3d926586a3eab4659f3b498dd444a1",
+        "checkpoint_sha256": "93c086ad8e369cc295dced96b9d48db1524226207e82ab514148f02decad2f61"
+      },
+      "source": {
+        "fase": "fase6",
+        "modelo": "entrega_2/modelos/yolov5s_custom_exp60_best.pt",
+        "revisao": "4add2aff6e3d926586a3eab4659f3b498dd444a1",
+        "python_validado": "3.13.13",
+        "dataset": "dataset/test"
+      }
+    }
+  },
+  "external_validation": {
+    "open_meteo": "mocked, no live request",
+    "oracle": "mocked, driver oracledb unavailable",
+    "r": "not executed, Rscript not found on PATH",
+    "serial_wokwi_hardware": "not executed"
+  },
+  "installations": false,
+  "downloads": false,
+  "training": false
+}

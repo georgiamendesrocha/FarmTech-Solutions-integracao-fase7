@@ -1,0 +1,28 @@
+[browser]
+gatherUsageStats = false
+
+[server]
+address = "127.0.0.1"
+enableCORS = true
+enableXsrfProtection = true
+
+[client]
+showErrorDetails = "none"
+
+
+
+
+[theme]
+base = "dark"
+primaryColor = "#38B88E"
+backgroundColor = "#343B42"
+secondaryBackgroundColor = "#454E57"
+textColor = "#D5DBDD"
+font = "sans serif"
+
+[theme.sidebar]
+primaryColor = "#75D5A3"
+backgroundColor = "#203E35"
+secondaryBackgroundColor = "#356754"
+textColor = "#D5DBDD"
+

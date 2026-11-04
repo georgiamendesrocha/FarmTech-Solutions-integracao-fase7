@@ -1,0 +1,231 @@
+{
+  "fonte": "IBGE/SIDRA tabela 1612 — rendimento médio agregado nacional",
+  "unidade": "kg/ha",
+  "variavel_de_entrada": "ano (conhecido antes da previsão)",
+  "alvo": "rendimento médio oficial por cultura e ano",
+  "validacao": "selecao em cinco períodos walk-forward anteriores ao teste; teste temporal reservado nos cinco anos mais recentes; treino em cada período usa somente anos anteriores",
+  "culturas": {
+    "2692": {
+      "cultura": "Arroz (em casca)",
+      "anos_validacao_modelo": [
+        2016,
+        2017,
+        2018,
+        2019,
+        2020
+      ],
+      "anos_teste_temporal": [
+        2021,
+        2022,
+        2023,
+        2024,
+        2025
+      ],
+      "n_anos_historicos": 36,
+      "validacao_selecao": {
+        "regressao_linear_temporal": {
+          "mae": 428.3230626640376,
+          "rmse": 493.59129069430566,
+          "r2": -0.6975234099556318
+        },
+        "persistencia_ultimo_ano": {
+          "mae": 384.8,
+          "rmse": 450.1550843875919,
+          "r2": -0.4119038275879754
+        }
+      },
+      "teste_temporal": {
+        "metodo_selecionado": {
+          "mae": 307.8,
+          "rmse": 320.38945051296554,
+          "r2": -1.7139096814039125
+        },
+        "persistencia_ultimo_ano": {
+          "mae": 307.8,
+          "rmse": 320.38945051296554,
+          "r2": -1.7139096814039125
+        }
+      },
+      "metodo_selecionado": "Persistência (último ano)",
+      "previsao_disponivel": false
+    },
+    "2702": {
+      "cultura": "Feijão (em grão)",
+      "anos_validacao_modelo": [
+        2016,
+        2017,
+        2018,
+        2019,
+        2020
+      ],
+      "anos_teste_temporal": [
+        2021,
+        2022,
+        2023,
+        2024,
+        2025
+      ],
+      "n_anos_historicos": 36,
+      "validacao_selecao": {
+        "regressao_linear_temporal": {
+          "mae": 29.31769677066186,
+          "rmse": 42.56901310582034,
+          "r2": 0.15409997161685718
+        },
+        "persistencia_ultimo_ano": {
+          "mae": 59.8,
+          "rmse": 64.7255745436068,
+          "r2": -0.9556165508999928
+        }
+      },
+      "teste_temporal": {
+        "metodo_selecionado": {
+          "mae": 42.05964731346903,
+          "rmse": 50.447673259673415,
+          "r2": -0.4634325474484593
+        },
+        "persistencia_ultimo_ano": {
+          "mae": 42.2,
+          "rmse": 49.491413396669124,
+          "r2": -0.40847824086852524
+        }
+      },
+      "metodo_selecionado": "Regressão linear temporal",
+      "previsao_disponivel": false
+    },
+    "2711": {
+      "cultura": "Milho (em grão)",
+      "anos_validacao_modelo": [
+        2016,
+        2017,
+        2018,
+        2019,
+        2020
+      ],
+      "anos_teste_temporal": [
+        2021,
+        2022,
+        2023,
+        2024,
+        2025
+      ],
+      "n_anos_historicos": 36,
+      "validacao_selecao": {
+        "regressao_linear_temporal": {
+          "mae": 396.0460397176154,
+          "rmse": 476.6709953378256,
+          "r2": 0.263159574546149
+        },
+        "persistencia_ultimo_ano": {
+          "mae": 766.0,
+          "rmse": 898.0331842420969,
+          "r2": -1.6152954700583964
+        }
+      },
+      "teste_temporal": {
+        "metodo_selecionado": {
+          "mae": 527.6366701372666,
+          "rmse": 618.7757976666148,
+          "r2": -0.09392356758103682
+        },
+        "persistencia_ultimo_ano": {
+          "mae": 750.2,
+          "rmse": 780.8240518836494,
+          "r2": -0.7419139876716438
+        }
+      },
+      "metodo_selecionado": "Regressão linear temporal",
+      "previsao_disponivel": false
+    },
+    "2713": {
+      "cultura": "Soja (em grão)",
+      "anos_validacao_modelo": [
+        2016,
+        2017,
+        2018,
+        2019,
+        2020
+      ],
+      "anos_teste_temporal": [
+        2021,
+        2022,
+        2023,
+        2024,
+        2025
+      ],
+      "n_anos_historicos": 36,
+      "validacao_selecao": {
+        "regressao_linear_temporal": {
+          "mae": 150.4850307495799,
+          "rmse": 177.25772141585833,
+          "r2": 0.0001253872315752913
+        },
+        "persistencia_ultimo_ano": {
+          "mae": 180.8,
+          "rmse": 240.57181879846195,
+          "r2": -0.8417247322449168
+        }
+      },
+      "teste_temporal": {
+        "metodo_selecionado": {
+          "mae": 178.94618371982068,
+          "rmse": 243.0669530607904,
+          "r2": -0.4249481858736166
+        },
+        "persistencia_ultimo_ano": {
+          "mae": 346.2,
+          "rmse": 366.4731913796697,
+          "r2": -2.2391544692230814
+        }
+      },
+      "metodo_selecionado": "Regressão linear temporal",
+      "previsao_disponivel": false
+    },
+    "2696": {
+      "cultura": "Cana-de-açúcar",
+      "anos_validacao_modelo": [
+        2016,
+        2017,
+        2018,
+        2019,
+        2020
+      ],
+      "anos_teste_temporal": [
+        2021,
+        2022,
+        2023,
+        2024,
+        2025
+      ],
+      "n_anos_historicos": 36,
+      "validacao_selecao": {
+        "regressao_linear_temporal": {
+          "mae": 4191.347785047628,
+          "rmse": 4222.019425822322,
+          "r2": -90.03601039730765
+        },
+        "persistencia_ultimo_ano": {
+          "mae": 574.6,
+          "rmse": 699.2182777931366,
+          "r2": -1.496883659056162
+        }
+      },
+      "teste_temporal": {
+        "metodo_selecionado": {
+          "mae": 2579.2,
+          "rmse": 2911.607116353441,
+          "r2": -0.9327480881710688
+        },
+        "persistencia_ultimo_ano": {
+          "mae": 2579.2,
+          "rmse": 2911.607116353441,
+          "r2": -0.9327480881710688
+        }
+      },
+      "metodo_selecionado": "Persistência (último ano)",
+      "previsao_disponivel": false
+    }
+  },
+  "previsao_disponivel": false,
+  "status": "somente histórico: o teste temporal reservado não demonstrou skill preditivo suficiente frente ao baseline"
+}

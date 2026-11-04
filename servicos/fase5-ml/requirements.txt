@@ -1,0 +1,9 @@
+# FarmTech Solutions - Fase 5, Entrega 1
+# Versões mínimas testadas. root_mean_squared_error exige scikit-learn >= 1.4.
+
+pandas>=2.0.0
+numpy>=1.24.0
+scikit-learn>=1.4.0
+matplotlib>=3.7.0
+seaborn>=0.13.0
+jupyter>=1.0.0

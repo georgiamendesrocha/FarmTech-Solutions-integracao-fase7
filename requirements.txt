@@ -1,0 +1,94 @@
+# FarmTech Solutions — inventário das dependências Python já declaradas.
+#
+# Não instale este arquivo inteiro. A dashboard integrada (Fase 4) usa
+# Python 3.11.9 e a visão (Fase 6) usa Python 3.13.13, com pins
+# incompatíveis de pandas, numpy, Pillow, matplotlib, seaborn e ipykernel.
+# Cada bloco repete o requirements do serviço. Instale só o bloco correspondente.
+#
+# Fora do pip, o projeto também depende de:
+# - R: dplyr (Fase 1), httr e jsonlite (Fase 1, clima)
+# - PlatformIO / ESP32:
+#     beegee-tokyo/DHT sensor library for ESPx ^1.19 (Fase 2)
+#     adafruit/DHT sensor library ^1.4.6 (Fase 5, Ir Além)
+#     adafruit/Adafruit Unified Sensor ^1.1.14 (Fase 5, Ir Além)
+
+# --- Fase 1 (servicos/fase1-gestao) ---
+# Sem requirements próprio. src/farm.py importa pandas.
+pandas
+
+# --- Fase 2 (servicos/fase2-iot/config/requirements.txt) ---
+platformio>=6.1.0
+pyserial>=3.5
+
+# --- Fase 2, captura serial (servicos/fase2-iot/scripts/requirements-serial.txt) ---
+pyserial>=3.5
+
+# --- Fase 3 (servicos/fase3-dashboard/requirements.txt) ---
+# Python mínimo declarado: 3.11
+fastapi>=0.111.0
+uvicorn[standard]>=0.29.0
+pydantic>=2.7.0
+apscheduler>=3.10.4,<4
+oracledb>=2.3.0
+requests>=2.31.0
+streamlit>=1.35.0
+plotly>=5.18.0
+kaleido>=0.2.1
+pandas>=2.2.0
+numpy>=2.0.0,<3
+scikit-learn>=1.4.0
+matplotlib>=3.8.0
+seaborn>=0.13.0
+notebook>=7.0.0
+ipykernel>=6.0.0
+python-dotenv>=1.0.0
+fpdf2>=2.7.0
+
+# --- Fase 4, dashboard integrada (servicos/fase4-regressao/requirements.txt) ---
+# Python 3.11.9
+streamlit==1.54.0
+plotly==6.1.1
+pandas==2.2.3
+numpy==2.2.6
+scikit-learn==1.6.1
+joblib==1.5.0
+apscheduler==3.11.0
+python-dotenv==1.2.2
+Pillow==12.3.0
+
+# --- Fase 5 (servicos/fase5-ml/requirements.txt) ---
+pandas>=2.0.0
+numpy>=1.24.0
+scikit-learn>=1.4.0
+matplotlib>=3.7.0
+seaborn>=0.13.0
+jupyter>=1.0.0
+
+# --- Fase 5, Ir Além (servicos/fase5-ml/ir_alem/requirements.txt) ---
+Flask
+streamlit
+pandas
+
+# --- Fase 6 (servicos/fase6-visao/requirements.txt) ---
+# Python 3.13.13, CPU. Não misturar com o ambiente da Fase 4.
+--extra-index-url https://download.pytorch.org/whl/cpu
+tensorflow==2.21.0
+keras==3.15.1
+torch==2.15.0
+torchvision==0.29.2
+ultralytics==8.4.198
+numpy==2.5.4
+opencv-python==5.0.0.93
+matplotlib==3.11.2
+Pillow==13.0.0
+pandas==3.1.0
+PyYAML==6.0.3
+requests==2.34.2
+scipy==1.18.1
+seaborn==0.13.2
+psutil==7.2.2
+packaging==26.3
+setuptools==84.2.1
+ultralytics-thop==2.2.4
+h5py==3.14.0
+ipykernel==7.4.0

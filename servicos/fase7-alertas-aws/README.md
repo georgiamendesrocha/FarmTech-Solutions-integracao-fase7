@@ -8,13 +8,29 @@
 
 # Alertas AWS — serviço de notificação por e-mail (SNS + EC2)
 
-**Aluno:** Edemir Sufiatti (Ede) · **RM:** 571375  
 **Branch:** `feature/alertas-aws-edemir`  
 **Módulo:** `servicos/fase7-alertas-aws/`  
-**Região AWS:** `sa-east-1` (América do Sul — São Paulo)  
+**Região AWS:** `sa-east-1` (América do Sul - São Paulo)  
 **Conta AWS:** `906011060588`
 
-Neste README eu documento, em primeira pessoa, o processo completo da **Parte 2** do enunciado da Fase 7: montei o serviço de alerta na infraestrutura da Fase 5 (EC2 + SNS), liguei a previsão da Fase 2 (Open-Meteo) às regras de irrigação do tomate e enviei o e-mail ao funcionário. As imagens embutidas são as evidências reais que capturei durante a execução.
+### Integrantes
+
+- Edemir Sufiatti - RM571375
+- Carlos Magnus Costa Amaral - RM573978
+- Georgia Mendes Rocha - RM573281
+- Marina Leme Soares - RM570461
+
+### Professores
+
+**Tutora**
+
+- Nicolly Cândida Rodrigues de Souza
+
+**Coordenador**
+
+- André Godoi Chiovato
+
+Neste README eu documentoo processo completo da **Parte 2** do enunciado da Fase 7: montei o serviço de alerta na infraestrutura da Fase 5 (EC2 + SNS), liguei a previsão da Fase 2 (Open-Meteo) às regras de irrigação do tomate e enviei o e-mail ao funcionário. As imagens embutidas são as evidências reais que capturei durante a execução.
 
 ---
 

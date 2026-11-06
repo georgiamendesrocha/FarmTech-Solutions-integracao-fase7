@@ -28,9 +28,22 @@ class DemoIntegrityTests(unittest.TestCase):
 
     def test_all_preserved_payloads_match_baseline(self):
         files = json.loads((PROJECT_ROOT / "docs" / "integridade-int02.json").read_text(encoding="utf-8"))["files"]
+        ui = json.loads((PROJECT_ROOT / "docs" / "integridade-ui-lote1.json").read_text(encoding="utf-8"))
+        self.assertEqual(ui["baseline"], "integridade-int02.json")
+        self.assertEqual(set(ui["files"]), {
+            "servicos/fase4-regressao/src/frontend/pages/1_Sensores_IoT.py",
+            "servicos/fase4-regressao/src/frontend/pages/2_Analise_Exploratoria.py",
+            "servicos/fase4-regressao/src/frontend/pages/3_Pipeline_ML.py",
+            "servicos/fase4-regressao/src/frontend/pages/4_Previsao.py",
+            "servicos/fase4-regressao/src/frontend/pages/5_Recomendacoes.py",
+            "servicos/fase4-regressao/src/frontend/pages/6_Historico_Previsoes.py",
+            "servicos/fase4-regressao/src/frontend/pages/7_Dados_Oficiais.py",
+        })
+        self.assertTrue(set(ui["files"]).issubset(files))
         self.assertGreater(len(files), 100)
         for relative, expected in files.items():
             with self.subTest(path=relative):
+                expected = ui["files"].get(relative, expected)
                 self.assertEqual(hashlib.sha256((PROJECT_ROOT / relative).read_bytes()).hexdigest(), expected)
 
     def test_publication_never_overwrites_existing_file(self):
@@ -68,6 +81,16 @@ class DemoIntegrityTests(unittest.TestCase):
             self.assertEqual(os.environ["FARMTECH_SIMULACAO"], "0")
             self.assertEqual(os.environ["DB_PATH"], str(path))
             self.assertFalse(path.exists())
+
+    def test_integrated_configuration_preserves_explicit_database_without_creating_it(self):
+        import os
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "explicit.db"
+            with patch.dict(os.environ, {"FARMTECH_INTEGRACAO": "1", "DB_PATH": str(path)}, clear=True):
+                demo.configure_dashboard()
+                self.assertEqual(os.environ["DB_PATH"], str(path))
+                self.assertEqual(os.environ["FARMTECH_SIMULACAO"], "0")
+                self.assertFalse(path.exists())
 
 
 if __name__ == "__main__":

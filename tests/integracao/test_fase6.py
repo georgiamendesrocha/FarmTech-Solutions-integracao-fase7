@@ -1,6 +1,6 @@
 """Contratos Fase 6 sem frameworks, inferência, rede ou alteração dos modelos."""
 
-from contextlib import redirect_stdout
+from contextlib import nullcontext, redirect_stdout
 import hashlib
 import importlib.util
 import io
@@ -9,7 +9,7 @@ from pathlib import Path
 import tempfile
 from types import SimpleNamespace
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from farmtech_integracao import fase6
 from farmtech_integracao.contracts import Result
@@ -132,6 +132,111 @@ class Fase6ContractTests(unittest.TestCase):
             invalid.update(change)
             with self.assertRaises(ValueError):
                 fase6_worker._safe_report(invalid)
+
+    def _upload_payload(self):
+        root = self.service.parent
+        name = "a" * 32 + ".png"
+        upload = root / ".runtime" / "fase6" / "uploads" / name
+        upload.parent.mkdir(parents=True)
+        upload.write_bytes(b"upload de teste")
+        return root, upload, {"action": "infer_image", "filename": name,
+                              "yolo_repo": str(self.checkout), "revision": fase6.REVISAO_YOLO}
+
+    def test_uploaded_image_rejects_modified_yolo_source_before_framework(self):
+        root, _, payload = self._upload_payload()
+        path = PROJECT_ROOT / "servicos/fase6-visao/entrega_2/avaliar_yolo.py"
+        spec = importlib.util.spec_from_file_location("fase6_upload_source_test", path)
+        evaluator = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(evaluator)
+        git_responses = [str(self.checkout), fase6.REVISAO_YOLO,
+                         fase6.REVISAO_YOLO, " M hubconf.py"]
+        with patch.object(fase6_worker, "PROJECT_ROOT", root), \
+                patch.object(fase6_worker, "_load_evaluator", return_value=evaluator), \
+                patch.object(evaluator, "git_local", side_effect=git_responses) as git, \
+                patch.object(fase6_worker.sys, "addaudithook") as hook:
+            result = fase6_worker._infer_one(payload)
+        self.assertEqual(result.status, "error")
+        self.assertEqual(git.call_count, 4)
+        self.assertEqual(git.call_args.args[1:3], ("status", "--porcelain"))
+        hook.assert_not_called()
+        self.assertNotIn("hubconf.py", result.message)
+
+    def test_uploaded_image_installs_offline_guard_before_importing_framework(self):
+        from PIL import Image
+
+        root, upload, payload = self._upload_payload()
+        Image.new("RGB", (2, 2)).save(upload, format="PNG")
+        calls = []
+        evaluator = SimpleNamespace(
+            verificar_fonte=Mock(side_effect=lambda args: calls.append("source")),
+            impedir_mistura_modulos=Mock(side_effect=lambda: calls.append("modules")),
+            bloquear_rede_e_processos=Mock(),
+        )
+        original_import = __import__
+
+        def import_without_framework(name, *args, **kwargs):
+            if name == "torch":
+                calls.append("torch")
+                raise ImportError("Framework intentionally unavailable")
+            return original_import(name, *args, **kwargs)
+
+        with patch.object(fase6_worker, "PROJECT_ROOT", root), \
+                patch.object(fase6_worker, "_load_evaluator", return_value=evaluator), \
+                patch.object(fase6_worker, "CHECKPOINT_SHA256", hashlib.sha256(b"").hexdigest()), \
+                patch.object(Image, "MAX_IMAGE_PIXELS", Image.MAX_IMAGE_PIXELS), \
+                patch.object(fase6_worker.sys, "addaudithook", side_effect=lambda hook: calls.append("guard")) as hook, \
+                patch("builtins.__import__", side_effect=import_without_framework):
+            result = fase6_worker._infer_one(payload)
+        self.assertEqual(result.status, "unavailable")
+        self.assertEqual(calls, ["source", "modules", "guard", "torch"])
+        args = evaluator.verificar_fonte.call_args.args[0]
+        self.assertEqual((args.yolo_repo, args.revisao, args.abordagem),
+                         (self.checkout, fase6.REVISAO_YOLO, "customizada"))
+        installed_guard = hook.call_args.args[0]
+        installed_guard("socket.connect", ("fixture",))
+        evaluator.bloquear_rede_e_processos.assert_called_once_with(
+            "socket.connect", ("fixture",), self.checkout,
+        )
+
+    def test_uploaded_image_reports_model_and_separate_timings_even_without_detections(self):
+        from PIL import Image
+
+        root, upload, payload = self._upload_payload()
+        Image.new("RGB", (2, 2)).save(upload, format="PNG")
+        for rows in ([[0.0, 0.0, 1.0, 1.0, 0.75, 0]], []):
+            with self.subTest(detections=len(rows)):
+                tensor = Mock()
+                tensor.detach.return_value.cpu.return_value.tolist.return_value = rows
+                model = Mock(names={0: "banana", 1: "milho"},
+                             return_value=SimpleNamespace(xyxy=[tensor]))
+                framework = SimpleNamespace(hub=SimpleNamespace(load=Mock(return_value=model)),
+                                            inference_mode=lambda: nullcontext())
+                evaluator = SimpleNamespace(
+                    verificar_fonte=Mock(), impedir_mistura_modulos=Mock(),
+                    bloquear_rede_e_processos=Mock(),
+                    compatibilidade_posix_windows=lambda: nullcontext(),
+                )
+                with patch.object(fase6_worker, "PROJECT_ROOT", root), \
+                        patch.object(fase6_worker, "_load_evaluator", return_value=evaluator), \
+                        patch.object(fase6_worker, "CHECKPOINT_SHA256", hashlib.sha256(b"").hexdigest()), \
+                        patch.object(Image, "MAX_IMAGE_PIXELS", Image.MAX_IMAGE_PIXELS), \
+                        patch.object(fase6_worker.sys, "addaudithook") as hook, \
+                        patch.dict(fase6_worker.sys.modules, {"torch": framework}), \
+                        patch.object(fase6_worker.time, "perf_counter", side_effect=[1, 1.25, 2, 2.5]):
+                    result = fase6_worker._infer_one(payload)
+                self.assertTrue(result.ok)
+                self.assertIs(result.data["modelo_carregado"], True)
+                self.assertEqual(result.data["classes_modelo"], ["banana", "milho"])
+                self.assertEqual(result.data["tempo_carregamento_ms"], 250.0)
+                self.assertEqual(result.data["tempo_inferencia_ms"], 500.0)
+                self.assertEqual(result.data["total"], len(rows))
+                self.assertEqual(result.data["largura"], 2)
+                self.assertEqual(model.conf, 0.25)
+                framework.hub.load.assert_called_once_with(
+                    str(self.checkout), "custom", path=str(self.service / fase6.MODELO_RELATIVO),
+                    source="local", device="cpu",
+                )
+                hook.assert_called_once()
 
 
 class PreservedEvaluatorTests(unittest.TestCase):

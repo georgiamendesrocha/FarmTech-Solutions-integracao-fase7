@@ -6,9 +6,18 @@ from pathlib import Path
 import subprocess
 import sys
 import tempfile
+import unicodedata
 import unittest
 
 from test_frontend_safety import _copy_module
+
+
+def _normalize_text(message):
+    """Ignora só acentos nas comparações; mantém conteúdo, caixa e pontuação."""
+    return "".join(
+        character for character in unicodedata.normalize("NFD", message)
+        if not unicodedata.combining(character)
+    )
 
 
 def _worker(scenario, root):
@@ -88,7 +97,7 @@ class RecommendationAuditTests(unittest.TestCase):
             self.assert_valid(result)
             for label, expected in {"N (kg/ha)": [40, 0, 140], "P (kg/ha)": [30, 5, 145], "K (kg/ha)": [20, 5, 205]}.items():
                 self.assertEqual(result["sliders"][label], expected)
-            captions = " ".join(result["captions"])
+            captions = _normalize_text(" ".join(result["captions"]))
             self.assertIn("parametros de cenario editaveis", captions)
             self.assertIn("nao sao medicoes quantitativas", captions)
             self.assertIn("nao sao medicoes atuais de uma fazenda real", captions)
@@ -97,17 +106,17 @@ class RecommendationAuditTests(unittest.TestCase):
         results = self.run_scenario("comparisons")
         for result, direction in zip(results, ("abaixo", "acima")):
             self.assert_valid(result)
-            comparison = next(message for message in result["warnings"] if "Comparacao Descritiva de NPK" in message)
+            comparison = next(message for message in map(_normalize_text, result["warnings"]) if "Comparacao Descritiva de NPK" in message)
             self.assertIn(direction + " da media do dataset academico", comparison)
             self.assertNotIn("aumentar", comparison)
             self.assertNotIn("reduzir", comparison)
             self.assertNotIn("aplicacao", comparison)
-            self.assertIn("Nao constituem recomendacao de adubacao", " ".join(result["captions"]))
+            self.assertIn("Nao constituem recomendacao de adubacao", _normalize_text(" ".join(result["captions"])))
 
     def test_npk_near_dataset_mean_does_not_claim_agronomic_adequacy(self):
         result = self.run_scenario("near_means")
         self.assert_valid(result)
-        comparison = next(message for message in result["success"] if "Comparacao Descritiva de NPK" in message)
+        comparison = next(message for message in map(_normalize_text, result["success"]) if "Comparacao Descritiva de NPK" in message)
         self.assertIn("nao comprova adequacao agronomica", comparison)
         self.assertNotIn("faixa esperada", comparison)
 
@@ -115,21 +124,21 @@ class RecommendationAuditTests(unittest.TestCase):
         below, equal, above = self.run_scenario("humidity")
         for result in (below, equal, above):
             self.assert_valid(result)
-            public = " ".join(result["warnings"] + result["success"] + result["captions"])
+            public = _normalize_text(" ".join(result["warnings"] + result["success"] + result["captions"]))
             self.assertIn("72.5%", public)
             self.assertNotIn("60.0%", public)
             self.assertNotIn("minutos", public)
             self.assertIn("rainfall e um proxy academico", public)
             self.assertIn("nao representa volume direto de irrigacao", public)
             self.assertIn("Proxy de necessidade hidrica", result["metrics"])
-        self.assertTrue(any("Umidade Abaixo do Limiar" in message for message in below["warnings"]))
+        self.assertTrue(any("Umidade Abaixo do Limiar" in message for message in map(_normalize_text, below["warnings"])))
         for result in (equal, above):
-            self.assertTrue(any("Umidade no Limiar ou Acima" in message for message in result["success"]))
+            self.assertTrue(any("Umidade no Limiar ou Acima" in message for message in map(_normalize_text, result["success"])))
 
     def test_ph_ranges_remain_indicative_without_input_doses(self):
         for result, expected in zip(self.run_scenario("ph"), ("pH Abaixo", "pH Dentro", "pH Acima")):
             self.assert_valid(result)
-            public = " ".join(result["warnings"] + result["success"] + result["captions"])
+            public = _normalize_text(" ".join(result["warnings"] + result["success"] + result["captions"]))
             self.assertIn(expected, public)
             self.assertIn("6.0–7.0", public)
             self.assertIn("faixas de pH sao referencias indicativas", public)

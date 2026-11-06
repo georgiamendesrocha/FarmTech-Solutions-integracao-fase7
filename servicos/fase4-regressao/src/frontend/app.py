@@ -79,7 +79,6 @@ def render_home():
         st.write("Acesse as Fases 1, 2, 3 e 6 pela navegação. As sete páginas analíticas da Fase 4 continuam disponíveis.")
         st.page_link("pages/8_Servicos_Integrados.py", label="Abrir visão geral dos serviços", icon="🌱")
     if os.getenv("FARMTECH_INTEGRACAO") == "1":
-        info_card("Modo integrado local · simulação desativada · ações dos serviços executadas somente quando solicitadas.")
         from farmtech_integracao.demo import demo_path
         if Path(os.getenv("DB_PATH", "")).resolve() == demo_path().resolve():
             st.caption("Base reconstruída de demonstração a partir dos CSVs acadêmicos/registrados/simulados; não é histórico real recuperado.")

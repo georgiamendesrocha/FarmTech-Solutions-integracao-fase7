@@ -76,7 +76,10 @@ if not modelo_rainfall or not modelo_humidity:
 if not ultima:
     st.warning("Nenhuma leitura registrada de sensor disponível.")
     st.stop()
-st.warning(HISTORICAL_LIMITATION)
+st.warning(
+    "Recomendações experimentais: os modelos utilizados possuem limitações "
+    "de validação, e seus resultados não substituem uma avaliação agronômica."
+)
 st.caption(COMPATIBILITY_LIMITATION)
 
 # ── Formulario ────────────────────────────────────────────────────────────────
@@ -101,7 +104,7 @@ with st.form("form_recom"):
     analisar = st.form_submit_button("Gerar Recomendacoes")
 
 if not analisar:
-    info_card("Preencha os parametros e clique em 'Gerar Recomendações'.")
+    info_card("Selecione a cultura, ajuste os parâmetros pelos controles deslizantes e clique em Gerar Recomendações.'.")
     st.stop()
 
 # ── Previsao ─────────────────────────────────────────────────────────────────

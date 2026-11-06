@@ -71,7 +71,12 @@ def _worker(scenario, root):
         with db.get_connection() as connection:
             connection.execute("INSERT INTO previsoes(ts,modelo,target,valor_previsto,parametros_entrada) VALUES ('2026-11-01 12:00:00','Ridge','ph',6.2,'{\"label\":\"apple\"}')")
         pages = ["app.py", *[str(path.relative_to(root / "src/frontend")) for path in sorted((root / "src/frontend/pages").glob("*.py"))]]
-        result = {name: snapshot(run(name)) for name in pages}
+        # Os links entre páginas exigem o registro de st.navigation da entrada.
+        at = run("app.py")
+        result = {"app.py": snapshot(at)}
+        for name in pages[1:]:
+            at.switch_page(name).run()
+            result[name] = snapshot(at)
     elif scenario == "recommend_zero_n":
         at = run("pages/5_Recomendacoes.py")
         for field in at.slider:

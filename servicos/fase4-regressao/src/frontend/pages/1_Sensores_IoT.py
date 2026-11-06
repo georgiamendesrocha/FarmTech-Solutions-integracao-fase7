@@ -55,7 +55,7 @@ if estado == "ativa":
     st.success(f"Simulação ativa. Intervalo de {INTERVALO} segundos.")
 elif estado == "pausada":
     st.info("Simulação pausada.")
-elif estado == "indisponível":
+elif estado == "indisponivel":
     st.warning("Simulação indisponível.")
 else:
     info_card("Simulação parada.")

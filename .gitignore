@@ -7,3 +7,14 @@ __pycache__/
 *.log
 .venv*/
 venv*/
+
+# Credenciais e chaves privadas locais (preservar exemplos publicos)
+.aws/
+.ssh/
+secrets.toml
+credentials.json
+*.pem
+*.key
+
+# Cache local dos testes
+.pytest_cache/

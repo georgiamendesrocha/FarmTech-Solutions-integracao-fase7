@@ -36,6 +36,28 @@ from src.ml.productivity import (
     carregar_previsoes_produtividade,
 )
 
+def mostrar_metadados(unidades, tratamento, limitacoes, hash_fonte, hash_local):
+    """Metodologia legível; hashes ficam disponíveis somente para auditoria."""
+    with st.expander("Metodologia, unidades e limitações"):
+        for titulo, conteudo in (("Unidades", unidades),
+                                 ("Tratamento dos dados", tratamento),
+                                 ("Limitações", limitacoes)):
+            st.markdown(f"**{titulo}**")
+            if isinstance(conteudo, dict):
+                st.dataframe(pd.DataFrame([
+                    {"Campo": str(chave).replace("_", " ").capitalize(),
+                     "Descrição": str(valor)} for chave, valor in conteudo.items()
+                ]), hide_index=True, use_container_width=True)
+            elif isinstance(conteudo, (list, tuple)):
+                for detalhe in conteudo:
+                    st.write("• " + str(detalhe))
+            else:
+                st.write(str(conteudo))
+        with st.expander("Auditoria de integridade (SHA-256)"):
+            st.caption("Identificadores técnicos para conferência da origem e da cópia local.")
+            st.code(f"Fonte: {hash_fonte}\nCópia: {hash_local}")
+
+
 st.set_page_config(page_title="Dados Oficiais — FarmTech", layout="wide")
 
 st.title("Observações reais e estatísticas oficiais")
@@ -135,16 +157,11 @@ with tab_soil:
                 use_container_width=True,
                 hide_index=True,
             )
-            st.json(
-                {
-                    "hash_sha256_arquivo_fonte": noaa_metadata["arquivo_fonte_sha256"],
-                    "hash_sha256_copia_local": noaa_metadata[
-                        "arquivo_normalizado_sha256"
-                    ],
-                    "unidades": noaa_metadata["unidades"],
-                    "tratamento": noaa_metadata["tratamento"],
-                    "limitações": noaa_metadata["limitacoes"],
-                }
+            mostrar_metadados(
+                noaa_metadata["unidades"], noaa_metadata["tratamento"],
+                noaa_metadata["limitacoes"],
+                noaa_metadata["arquivo_fonte_sha256"],
+                noaa_metadata["arquivo_normalizado_sha256"],
             )
         info_card(
             "A estação fica nos Estados Unidos. As observações são mostradas "
@@ -201,16 +218,11 @@ with tab_soil:
                 use_container_width=True,
                 hide_index=True,
             )
-            st.json(
-                {
-                    "hash_sha256_arquivo_fonte": inmet_metadata["arquivo_estacao_sha256"],
-                    "hash_sha256_copia_local": inmet_metadata[
-                        "arquivo_normalizado_sha256"
-                    ],
-                    "unidades": inmet_metadata["unidades"],
-                    "tratamento": inmet_metadata["tratamento"],
-                    "limitações": inmet_metadata["limitacoes"],
-                }
+            mostrar_metadados(
+                inmet_metadata["unidades"], inmet_metadata["tratamento"],
+                inmet_metadata["limitacoes"],
+                inmet_metadata["arquivo_estacao_sha256"],
+                inmet_metadata["arquivo_normalizado_sha256"],
             )
         info_card(
             "As séries NOAA, INMET e IoT são de locais e contextos diferentes; "
@@ -331,8 +343,17 @@ with tab_productivity:
         except Exception as error:
             erro_publico("Diagnóstico de produtividade indisponível ou inválido. Somente o histórico oficial pode ser consultado; nenhuma previsão confiável foi publicada.", error, aviso=True)
 
-        st.info(
+        info_card(
             "Os rendimentos municipais são agregados oficiais por município e cultura; "
             "não representam rendimento de uma fazenda específica. Nenhuma linha é "
             "mesclada com as observações NOAA ou com a simulação IoT."
         )
+
+# Rodapé independente de falhas na leitura das fontes ou das abas.
+st.divider()
+info_card(
+    "NOAA, INMET e IBGE/SIDRA são fontes externas com localidades, períodos e "
+    "metodologias próprios. Não correspondem a medições do protótipo ESP32/Wokwi "
+    "nem devem ser combinados automaticamente com os registros simulados.",
+    title="Sobre a interpretação dos dados oficiais",
+)

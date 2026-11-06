@@ -15,6 +15,7 @@ import streamlit as st
 
 from src.db.database import get_previsoes, get_total_previsoes
 from src.frontend.feedback import erro_publico
+from farmtech_integracao.ui import info_card
 
 st.set_page_config(page_title="Historico de Previsoes — FarmTech", layout="wide")
 
@@ -41,7 +42,7 @@ except Exception as e:
     st.stop()
 
 if not previsoes:
-    st.info("Nenhuma previsao registrada ainda. Acesse a pagina 'Previsao Agricola' para gerar previsoes.")
+    info_card("Nenhuma previsão registrada ainda. Acesse a página 'Previsão Agrícola' para gerar previsões.")
     st.stop()
 
 df = pd.DataFrame(previsoes)

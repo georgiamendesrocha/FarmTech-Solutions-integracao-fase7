@@ -1,8 +1,10 @@
 """Configuração compartilhada e estados públicos, sempre com UI e banco isolados."""
 
 import json
+from html import unescape
 import os
 from pathlib import Path
+import re
 import subprocess
 import sys
 import tempfile
@@ -19,6 +21,7 @@ def _worker(scenario, root):
     sys.path.insert(0, str(root))
     os.environ.update(
         DB_PATH=str(root / "fixture.db"),
+        FARMTECH_INTEGRACAO="0",
         FARMTECH_SIMULACAO="0",
         UMIDADE_LIMIAR="72.5",
         SCHEDULER_INTERVALO="3600",
@@ -42,27 +45,44 @@ def _worker(scenario, root):
             "warnings": [item.value for item in app.warning],
             "success": [item.value for item in app.success],
             "info": [item.value for item in app.info],
+            # Os cartões informativos F7 usam markdown HTML, não st.info.
+            "markdown": [unescape(re.sub(r"<[^>]+>", " ", item.value)) for item in app.markdown],
         }
 
     initial_readings = len(db.get_leituras(limite=100000))
     try:
         if scenario == "home_states":
             with patch.dict(os.environ, {"FARMTECH_SIMULACAO": "1"}):
-                active = run("app.py")
-                holder = active.session_state["scheduler_holder"]
-                result = {"active": snapshot(active), "running": holder["scheduler"].running}
-                scheduler.encerrar_scheduler()
-                with patch.object(scheduler, "iniciar_scheduler", return_value=None):
+                # A página inicial observa o produtor; a fixture deve iniciá-lo
+                # explicitamente, sem depender de geração automática pela UI.
+                holder = {}
+                scheduler.iniciar_scheduler(holder)
+                with patch.object(scheduler, "iniciar_scheduler") as start:
+                    active = run("app.py", holder)
+                    result = {"active": snapshot(active), "running": holder["scheduler"].running,
+                              "home_started_scheduler": start.called}
+                scheduler.encerrar_scheduler(holder)
+                with patch.object(scheduler, "iniciar_scheduler"):
                     result["stopped"] = snapshot(run("app.py", holder))
                 with patch.object(db, "validar_banco", side_effect=ValueError("private-scheduler-failure")):
                     result["error"] = snapshot(run("app.py"))
             with patch.object(db, "validar_banco", side_effect=ValueError("private-disabled-db")):
                 result["disabled"] = snapshot(run("app.py", {"erro": "private-stale-error"}))
         elif scenario == "sensor_threshold":
-            app = run("pages/1_Sensores_IoT.py")
+            with patch.object(scheduler, "iniciar_scheduler") as start:
+                app = run("pages/1_Sensores_IoT.py")
             result = snapshot(app)
+            result["page_started_scheduler"] = start.called
             result["configured_threshold"] = scheduler.UMIDADE_LIMIAR
             result["chart"] = json.loads(app.get("plotly_chart")[0].proto.spec)
+        elif scenario == "sensor_unavailable":
+            with patch.dict(os.environ, {"FARMTECH_SIMULACAO": "1"}), patch.object(
+                scheduler, "iniciar_scheduler"
+            ) as start:
+                app = run("pages/1_Sensores_IoT.py", {"erro": "private-scheduler-failure"})
+            result = snapshot(app)
+            result["page_started_scheduler"] = start.called
+            result["producer_created"] = scheduler._SCHEDULER is not None
         elif scenario == "paused_scheduler":
             from apscheduler.schedulers.base import STATE_PAUSED
             with patch.dict(os.environ, {"FARMTECH_SIMULACAO": "1"}):
@@ -111,11 +131,12 @@ class SchedulerAuditTests(unittest.TestCase):
     def test_home_distinguishes_running_disabled_error_and_stopped(self):
         result = self.run_scenario("home_states")
         self.assertTrue(result["running"])
+        self.assertFalse(result["home_started_scheduler"])
         expected = {
             "active": ("success", "Simulação ativa"),
-            "disabled": ("info", "Simulação desativada por configuração"),
+            "disabled": ("markdown", "Simulação desativada por configuração"),
             "error": ("warnings", "Simulação indisponível"),
-            "stopped": ("info", "Simulação parada"),
+            "stopped": ("markdown", "Simulação parada"),
         }
         for state, (level, message) in expected.items():
             with self.subTest(state=state):
@@ -138,7 +159,8 @@ class SchedulerAuditTests(unittest.TestCase):
         self.assertEqual(layout["shapes"][0]["y0"], 72.5)
         self.assertEqual(layout["shapes"][0]["y1"], 72.5)
         self.assertIn("72.5%", layout["annotations"][0]["text"])
-        self.assertTrue(any("desativada por configuração" in message for message in result["info"]))
+        self.assertFalse(result["page_started_scheduler"])
+        self.assertTrue(any("Simulação parada" in message for message in result["markdown"]))
 
     def test_simulated_pump_uses_shared_threshold_including_boundary(self):
         from src.frontend import scheduler
@@ -150,6 +172,18 @@ class SchedulerAuditTests(unittest.TestCase):
                     reading = scheduler._gerar_leitura()
                 self.assertEqual(reading["umidade"], humidity)
                 self.assertEqual(reading["bomba_fw"], expected_pump)
+
+    def test_sensor_error_reports_unavailable_without_starting_a_producer(self):
+        result = self.run_scenario("sensor_unavailable")
+        self.assertEqual(result["exceptions"], [])
+        self.assertEqual(result["errors"], [])
+        self.assertTrue(any("Simulação indisponível" in message for message in result["warnings"]))
+        self.assertFalse(result["page_started_scheduler"])
+        self.assertFalse(result["producer_created"])
+        public = " ".join(result["warnings"] + result["success"] + result["info"] + result["markdown"])
+        self.assertNotIn("Simulação parada", public)
+        self.assertNotIn("Simulação ativa", public)
+        self.assertNotIn("private-", public)
 
     def test_real_paused_scheduler_remains_paused_and_ui_never_reports_active(self):
         result = self.run_scenario("paused_scheduler")
@@ -163,7 +197,8 @@ class SchedulerAuditTests(unittest.TestCase):
                 screen = result[page]
                 self.assertEqual(screen["exceptions"], [])
                 self.assertEqual(screen["errors"], [])
-                self.assertTrue(any("Simulação pausada" in message for message in screen["info"]))
+                information = screen["info"] + screen["markdown"]
+                self.assertTrue(any("Simulação pausada" in message for message in information))
                 public = " ".join(text for messages in screen.values() for text in messages)
                 self.assertNotIn("Simulação ativa", public)
                 self.assertNotIn("Scheduler ativo", public)

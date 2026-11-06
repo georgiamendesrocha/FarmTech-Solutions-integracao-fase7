@@ -80,6 +80,16 @@ def find_host_compiler():
     if os.name != "nt":
         return None
 
+    # Winget's portable toolchains may be installed before this shell reloads PATH.
+    local_app_data = os.environ.get("LOCALAPPDATA")
+    if local_app_data:
+        packages = Path(local_app_data) / "Microsoft" / "WinGet" / "Packages"
+        candidates = sorted(packages.glob(
+            "BrechtSanders.WinLibs.POSIX.UCRT_*/mingw64/bin/g++.exe"
+        ), reverse=True)
+        if candidates:
+            return candidates[0]
+
     drive = Path(os.environ.get("SystemDrive", "C:") + "/")
     patterns = (
         "rtools*/**/bin/g++.exe", "msys64/*/bin/g++.exe", "MinGW/bin/g++.exe",

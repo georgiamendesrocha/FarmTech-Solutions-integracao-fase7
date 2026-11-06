@@ -12,27 +12,48 @@ import plotly.express as px
 import streamlit as st
 
 from farmtech_integracao.ui import info_card
-from farmtech_integracao.fase3 import MAX_RECORDS, query_sensors
+from farmtech_integracao.fase3 import MAX_RECORDS, query_sensors, query_sensors_authenticated
 
 st.set_page_config(page_title="Consultas Oracle e CSV — FarmTech", layout="wide")
 st.title("Consultas da Fase 3")
 st.caption("Histórico agrícola da Fase 3: selecione a origem e consulte as leituras de sensores.")
 
-with st.form("fase3_query_form"):
-    selection = st.radio("Origem dos dados", ["CSV preservado", "Oracle — consulta real"])
-    origin = "csv" if selection == "CSV preservado" else "oracle"
-    limit = int(st.number_input("Limite de registros", min_value=1, max_value=MAX_RECORDS,
-                                value=200, step=50))
-    if origin == "csv":
+# A origem CSV continua disponível sem autenticação. Oracle usa RM FIAP por operação.
+selection = st.radio("Origem dos dados", ["CSV preservado", "Oracle — consulta real"])
+origin = "csv" if selection == "CSV preservado" else "oracle"
+limit = int(st.number_input("Limite de registros", min_value=1, max_value=MAX_RECORDS,
+                            value=200, step=50))
+
+if origin == "csv":
+    with st.form("fase3_csv_query_form"):
         st.caption("Cópia local historico_irrigacao.csv preservada na Fase 3. A seleção usa as primeiras linhas do arquivo.")
-    else:
-        st.caption("Tabela SENSORES_FARMTECH. A consulta usa os últimos registros por ID e requer rede e credenciais de leitura configuradas no ambiente.")
-    submitted = st.form_submit_button("Consultar leituras", type="primary")
+        submitted = st.form_submit_button("Consultar leituras", type="primary")
+else:
+    st.caption("Acesso Oracle FIAP: utilize sua RM acadêmica e a senha Oracle fornecida pela instituição.")
+    st.caption("O DSN abaixo é apenas um exemplo do .env.example; confirme o servidor/serviço indicado pela FIAP.")
+    with st.form("fase3_oracle_query_form", clear_on_submit=True):
+        rm = st.text_input("RM FIAP", placeholder="Ex.: RM000000", max_chars=14)
+        senha = st.text_input("Senha Oracle fornecida pela FIAP", type="password")
+        dsn = st.text_input("Servidor / Serviço Oracle (DSN)",
+                            value="oracle.fiap.com.br:1521/ORCL", max_chars=1024)
+        submitted = st.form_submit_button("Conectar e consultar", type="primary")
+    st.caption("A conexão é encerrada após a consulta. Nenhuma credencial é salva pela aplicação. Em rede, o dashboard deve usar HTTPS; o TLS Oracle depende da configuração institucional.")
 
 if submitted:
-    with st.spinner("Consultando a origem selecionada..."):
-        result = query_sensors(origin, limit=limit)
-    st.session_state["fase3_query_result"] = result.as_dict()
+    try:
+        with st.spinner("Consultando a origem selecionada..."):
+            if origin == "csv":
+                result = query_sensors("csv", limit=limit)
+            else:
+                result = query_sensors_authenticated(rm, senha, dsn, limit=limit)
+        safe_response = result.as_dict()
+    except Exception:
+        # Não exibir traceback: bibliotecas Oracle podem incluir parâmetros sensíveis.
+        safe_response = {"status": "error", "message": "Consulta não concluída. Confira os dados de acesso e a conectividade.", "data": {}, "source": {}}
+    finally:
+        if origin == "oracle":
+            rm = senha = dsn = None
+    st.session_state["fase3_query_result"] = safe_response
     st.session_state["fase3_query_origin"] = origin
 
 response = st.session_state.get("fase3_query_result")
@@ -48,10 +69,17 @@ if st.session_state.get("fase3_query_origin") != origin:
 if response.get("status") != "ok":
     st.warning(response.get("message", "A consulta está indisponível."))
     if origin == "oracle":
-        st.info("Verifique a configuração ORACLE_USER, ORACLE_PASS e ORACLE_DSN com o responsável pelo ambiente e as permissões de leitura da tabela.")
+        st.info("Verifique sua RM, senha Oracle, DSN, acesso à rede e permissão de leitura da tabela SENSORES_FARMTECH.")
     st.stop()
 
-st.success(response["message"])
+if origin == "oracle":
+    st.success(
+        f"Conexão Oracle estabelecida com sucesso. "
+        f"{response['message']} "
+        "Conexão encerrada após a consulta."
+    )
+else:
+    st.success(response["message"])
 data = response.get("data", {})
 rows = data.get("rows", [])
 st.caption(f"Origem: {selection} · Recurso: {source.get('resource', '')} · Seleção: {data.get('selection', '')}.")

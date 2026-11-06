@@ -11,6 +11,7 @@ import pandas as pd
 import plotly.express as px
 import streamlit as st
 from farmtech_integracao import fase2
+from farmtech_integracao.fase2_r import validar_fase2_r
 
 st.set_page_config(page_title="IoT e meteorologia | FarmTech", page_icon="🌦️", layout="wide")
 st.title("IoT e meteorologia")
@@ -29,12 +30,15 @@ else:
             result = fase2.forecast(city)
         st.session_state["fase2_integration_result"] = result.as_dict()
 
+
 stored = st.session_state.get("fase2_integration_result")
 if stored:
     if stored["status"] != "ok":
         st.warning(stored["message"])
     else:
         data = stored["data"]
+        if stored.get("source", {}).get("csv_exported") is False:
+            st.error("A consulta funcionou, mas a exportação CSV falhou. Consulte o log da aplicação.")
         location = data["location"]
         st.subheader(" · ".join(str(location[key]) for key in ("name", "admin1", "country") if location[key]))
         st.caption(f"Localização retornada: {location['latitude']:.4f}, {location['longitude']:.4f}. Confira a cidade antes de interpretar os dados.")
@@ -52,12 +56,44 @@ if stored:
         st.caption(f"Fonte: Open-Meteo · consulta em {stored['source']['retrieved_at']} · dados originais em UTC.")
         st.caption("A previsão apoia a análise; ela não comanda o firmware de irrigação.")
 
-with st.expander("Disponibilidade de IoT e análises R"):
+# A verificação usa o mesmo caminho absoluto usado pela exportação.
+arquivo_csv = fase2.forecast_csv_path()
+if arquivo_csv.is_file():
+    st.success("CSV meteorológico disponível para análise.")
+    with arquivo_csv.open("rb") as arquivo:
+        st.download_button("Baixar CSV da previsão", data=arquivo.read(),
+                           file_name="previsao_tempo.csv", mime="text/csv")
+else:
+    st.caption("CSV meteorológico não gerado nesta instalação. Consulte uma previsão para criá-lo.")
+
+available = fase2.availability()
+with st.expander("Informações técnicas e análises R"):
     capabilities = available.data
-    st.write("Histórico IoT local:", "presente" if capabilities.get("history_available") else "ausente")
-    st.write("CSV meteorológico local:", "presente" if capabilities.get("forecast_csv_available") else "ausente")
-    st.write("Rscript no PATH:", "disponível" if capabilities.get("r_installed_on_path") else "não localizado")
-    st.write("A captura serial e as análises R exigem preparação externa; esta página disponibiliza a consulta meteorológica.")
-    for condition in capabilities.get("preconditions", []):
-        st.caption(condition)
-    st.caption("O ESP32/Wokwi é um protótipo didático com sensores simulados. O histórico local precisa ter origem e fuso identificados.")
+    st.write("Histórico IoT:", "presente" if capabilities.get("history_available") else "ausente")
+    st.write("CSV meteorológico:", "presente" if arquivo_csv.is_file() else "ausente")
+    st.write("Análises R:", "Rscript localizado" if capabilities.get("r_detected") else "Rscript não localizado")
+    st.caption("As análises R são executadas somente quando solicitadas. A integração de dados reais exige períodos coincidentes.")
+    st.caption("O ESP32/Wokwi é um protótipo didático; dados de sensores simulados não são observações meteorológicas reais.")
+
+
+# Integração real e prova demonstrativa são apresentadas separadamente.
+st.divider()
+st.subheader("Validação R — Fase 2")
+st.caption("Teste sob demanda: analisa uma cópia do histórico IoT original e integra dois CSVs sintéticos temporalmente compatíveis. Não altera dados históricos nem associa maio a novembro.")
+if st.button("Executar validação R", type="primary", disabled=not capabilities.get("r_execution_enabled")):
+    with st.spinner("Executando scripts R e verificando arquivos e cálculos..."):
+        st.session_state["fase2_r_resultado"] = validar_fase2_r()
+
+r_resultado = st.session_state.get("fase2_r_resultado")
+if r_resultado:
+    if r_resultado["status"] == "ok":
+        st.success(r_resultado["message"])
+        left, right = st.columns(2)
+        left.metric("Registros do histórico IoT analisados", r_resultado["historico_linhas"])
+        right.metric("Registros integrados (dados sintéticos)", r_resultado["demonstracao_linhas"])
+        st.caption(r_resultado["origem"])
+        st.dataframe(pd.DataFrame(r_resultado["amostra"]), hide_index=True, width="stretch")
+        st.download_button("Baixar integração demonstrativa (CSV)", data=r_resultado["csv_demonstrativo"], file_name="validacao_r_demonstrativa.csv", mime="text/csv")
+        st.download_button("Baixar relatório R do histórico IoT", data=r_resultado["relatorio_historico"], file_name="analise_r_historico.txt", mime="text/plain")
+    else:
+        st.error(r_resultado["message"])

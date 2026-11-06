@@ -4,9 +4,12 @@ import json
 import os
 from pathlib import Path
 import sqlite3
+import struct
 import tempfile
+from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
+import zlib
 
 from farmtech_integracao.contracts import Result
 from farmtech_integracao.runtime import PROJECT_ROOT, SERVICE_DIRS
@@ -41,9 +44,13 @@ class DashboardTests(unittest.TestCase):
             folder = SERVICE_DIRS["fase4"] / "src" / "frontend" / "pages"
             names = ["app.py", *["pages/"+p.name for p in sorted(folder.glob("*.py"))]]
             self.assertEqual(len(names), 13)
+            # A navegação principal registra os destinos usados por st.page_link.
+            # Executar uma página isolada no AppTest não oferece esse registro.
+            page = self.run_page("app.py")
             for name in names:
                 with self.subTest(page=name):
-                    page = self.run_page(name)
+                    if name != "app.py":
+                        page.switch_page(name).run()
                     self.assertEqual(list(page.exception), [])
             execute.assert_not_called()
         from src.frontend import scheduler
@@ -88,6 +95,41 @@ class DashboardTests(unittest.TestCase):
             evaluate.assert_called_once()
             self.assertEqual(list(page.exception),[])
             self.assertEqual(len(page.get("plotly_chart")),1)
+
+    def test_fase6_invalid_checkout_configuration_keeps_screen_available(self):
+        from farmtech_integracao import runtime
+        with patch.dict(os.environ, {"FARMTECH_YOLO_REPO": "x" * 4097}), patch.object(
+            runtime, "_execute", side_effect=AssertionError("Configuração inválida não deve executar serviços")
+        ) as execute:
+            page = self.run_page("pages/12_Visao_Computacional.py")
+        self.assertEqual(list(page.exception), [])
+        self.assertTrue(list(page.warning))
+        evaluate = next(button for button in page.button if button.label == "Avaliar YOLO customizada")
+        self.assertTrue(evaluate.disabled)
+        execute.assert_not_called()
+
+    def test_fase6_rejects_excessive_pixel_dimensions_before_inference(self):
+        import streamlit as st
+        from farmtech_integracao import fase6
+
+        def png_chunk(kind, data):
+            return (struct.pack(">I", len(data)) + kind + data
+                    + struct.pack(">I", zlib.crc32(kind + data)))
+
+        # Cabeçalho pequeno: o Pillow deve rejeitar 400 milhões de pixels
+        # antes de decodificar ou alocar memória para a imagem.
+        blob = (bytes.fromhex("89504e470d0a1a0a")
+                + png_chunk(b"IHDR", struct.pack(">IIBBBBB", 20000, 20000, 8, 0, 0, 0, 0))
+                + png_chunk(b"IDAT", zlib.compress(b""))
+                + png_chunk(b"IEND", b""))
+        upload = SimpleNamespace(name="dimensoes_excessivas.png", getvalue=lambda: blob)
+        with patch.object(st, "file_uploader", return_value=upload), patch.object(
+            fase6, "inferir_imagem", side_effect=AssertionError("Imagem excessiva não deve executar inferência")
+        ) as infer:
+            page = self.run_page("pages/12_Visao_Computacional.py")
+        self.assertEqual(list(page.exception), [])
+        self.assertTrue(any("dimensões excessivas" in error.value for error in page.error))
+        infer.assert_not_called()
 
 
 if __name__ == "__main__":

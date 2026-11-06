@@ -55,7 +55,11 @@ if not modelo_rainfall or not modelo_humidity:
     st.warning("Modelos históricos indisponíveis. Recupere os artefatos do backup verificado.")
     st.stop()
 
-st.warning(HISTORICAL_LIMITATION)
+st.warning(
+    "Modelo experimental: o conjunto de teste participou da seleção do modelo "
+    "e da validação cruzada. As métricas históricas não representam avaliação "
+    "independente de generalização nem validação agronômica."
+)
 st.caption(COMPATIBILITY_LIMITATION)
 
 # ── Formulario de previsao ────────────────────────────────────────────────────
@@ -119,7 +123,7 @@ if submeter:
         if prev_rainfall > 150:
             st.warning("Proxy indica alta necessidade hidrica; avalie o manejo de irrigacao com dados agronomicos complementares.")
         elif prev_rainfall > 80:
-            st.info("Proxy indica necessidade hidrica moderada.")
+            info_card("Proxy indica necessidade hidrica moderada.")
         else:
             st.success("Proxy indica baixa necessidade hidrica no cenario informado.")
 

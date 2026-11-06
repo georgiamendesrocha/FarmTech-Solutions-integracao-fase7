@@ -7,6 +7,7 @@ import json
 import math
 import os
 from pathlib import Path
+import re
 import sys
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -48,14 +49,19 @@ def _read_csv(limit: int):
     return pd.read_csv(CSV_PATH, encoding="utf-8", nrows=limit)
 
 
-def _read_oracle(limit: int):
+def _read_oracle(limit: int, auth: dict | None = None):
     import oracledb
     import pandas as pd
 
-    # Não carregar .env: a configuração deve ser fornecida ao processo pelo ambiente.
-    with oracledb.connect(user=os.environ["ORACLE_USER"],
-                          password=os.environ["ORACLE_PASS"],
-                          dsn=os.environ["ORACLE_DSN"]) as connection:
+    # Autenticação transitória recebida por stdin; fallback legado em variáveis de ambiente.
+    credentials = auth if auth is not None else {
+        "user": os.environ["ORACLE_USER"],
+        "password": os.environ["ORACLE_PASS"],
+        "dsn": os.environ["ORACLE_DSN"],
+    }
+    with oracledb.connect(user=credentials["user"],
+                          password=credentials["password"],
+                          dsn=credentials["dsn"]) as connection:
         connection.call_timeout = 10000
         with connection.cursor() as cursor:
             cursor.arraysize = min(limit, 100)
@@ -81,7 +87,7 @@ def _records(frame, limit: int) -> list[dict]:
 def handle(payload: dict) -> Result:
     if not isinstance(payload, dict) or payload.get("operation") != "query_sensors":
         return Result("invalid", "Operação de consulta inválida.")
-    if set(payload) - {"operation", "source", "limit"}:
+    if set(payload) - {"operation", "source", "limit", "auth"}:
         return Result("invalid", "A consulta não aceita SQL, caminhos ou opções adicionais.")
     origin = payload.get("source")
     limit = payload.get("limit", 500)
@@ -89,13 +95,28 @@ def handle(payload: dict) -> Result:
         return Result("invalid", "Origem de dados inválida.")
     if isinstance(limit, bool) or not isinstance(limit, int) or not 1 <= limit <= MAX_RECORDS:
         return Result("invalid", "Limite de registros inválido.")
+    if origin == "csv" and "auth" in payload:
+        return Result("invalid", "Credenciais não são aceitas nas consultas CSV.")
+    auth = payload.get("auth")
+    if "auth" in payload and (
+        origin != "oracle" or not isinstance(auth, dict)
+        or set(auth) != {"user", "password", "dsn"}
+        or not isinstance(auth.get("user"), str)
+        or not isinstance(auth.get("password"), str)
+        or not isinstance(auth.get("dsn"), str)
+        or not re.fullmatch(r"RM[0-9]{4,12}", auth["user"])
+        or not 1 <= len(auth["password"]) <= 256
+        or not 1 <= len(auth["dsn"]) <= 1024
+        or any(ord(c) < 32 or ord(c) == 127 for field in auth.values() for c in field)
+    ):
+        return Result("invalid", "Dados de autenticação Oracle inválidos.")
     source = {"phase": "fase3", "kind": origin,
               "resource": "SENSORES_FARMTECH" if origin == "oracle" else "historico_irrigacao.csv"}
-    if origin == "oracle" and not all(os.environ.get(name) for name in
+    if origin == "oracle" and auth is None and not all(os.environ.get(name) for name in
                                       ("ORACLE_USER", "ORACLE_PASS", "ORACLE_DSN")):
         return Result("unavailable", "Oracle não configurado. Defina ORACLE_USER, ORACLE_PASS e ORACLE_DSN no ambiente.", source=source)
     try:
-        frame = _read_oracle(limit) if origin == "oracle" else _read_csv(limit)
+        frame = _read_oracle(limit, auth) if origin == "oracle" else _read_csv(limit)
         rows = _records(frame, limit)
     except ImportError:
         message = ("Driver Oracle (oracledb) indisponível no ambiente Python selecionado. O CSV preservado continua disponível."

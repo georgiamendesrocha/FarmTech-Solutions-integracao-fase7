@@ -1,0 +1,14 @@
+{
+  "purpose": "Hashes complementares das sete paginas originais F4 evoluidas para o dashboard Fase 7; preserva o manifesto historico e mantem todos os arquivos sob verificacao de integridade.",
+  "date": "2026-11-06",
+  "baseline": "integridade-int02.json",
+  "files": {
+    "servicos/fase4-regressao/src/frontend/pages/1_Sensores_IoT.py": "873e7136c126b1952e18e1a70196ff93e5f28b204e1c429ac0aea911f1e063f4",
+    "servicos/fase4-regressao/src/frontend/pages/2_Analise_Exploratoria.py": "37c3868047a29727b18a106f6da79f17c57a875660724527b3dae57e845111c6",
+    "servicos/fase4-regressao/src/frontend/pages/3_Pipeline_ML.py": "3e5ba2358ccb82efe1d05dab875af0d99be36a6fa707d5ed97ea705c161213d8",
+    "servicos/fase4-regressao/src/frontend/pages/4_Previsao.py": "7a69a735ace749ba68cd25c7b6cc4929ab650d412aa47ba15896de9b9ea0279d",
+    "servicos/fase4-regressao/src/frontend/pages/5_Recomendacoes.py": "cdd1a27581b46689a9bf4e39f18db2aa4a7f5a04cb97b0e289f9be042b1fdb97",
+    "servicos/fase4-regressao/src/frontend/pages/6_Historico_Previsoes.py": "3ba7521d27ad233ba3c9be08d9092e402ef3ef5704739d2ed78f920f9a2f96b6",
+    "servicos/fase4-regressao/src/frontend/pages/7_Dados_Oficiais.py": "11458a0f8a38dd9a924aa5db91d844bd55358274d2040251a94d888643400ca0"
+  }
+}

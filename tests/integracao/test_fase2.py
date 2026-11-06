@@ -116,11 +116,19 @@ class Fase2Tests(unittest.TestCase):
         self.assertNotIn("private_fixture_detail", output.getvalue())
 
     def test_availability_never_starts_hardware_r_or_weather(self):
-        with patch.object(fase2, "run_json_worker") as run:
-            result = fase2.availability()
+        with patch.object(fase2, "run_json_worker") as run, \
+                patch("farmtech_integracao.fase2_r._execute") as execute_r, \
+                patch.object(fase2, "forecast") as forecast:
+            for installed in (False, True):
+                with self.subTest(r_installed=installed), \
+                        patch.object(fase2, "localizar_rscript", return_value="Rscript.exe" if installed else None):
+                    result = fase2.availability()
+                    self.assertFalse(result.data["serial_execution_enabled"])
+                    self.assertEqual(result.data["r_detected"], installed)
+                    self.assertEqual(result.data["r_execution_enabled"], installed)
         run.assert_not_called()
-        self.assertFalse(result.data["serial_execution_enabled"])
-        self.assertFalse(result.data["r_execution_enabled"])
+        execute_r.assert_not_called()
+        forecast.assert_not_called()
 
 
 if __name__ == "__main__":

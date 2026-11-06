@@ -51,7 +51,9 @@ load_iot_data <- function() {
 }
 
 load_weather_data <- function() {
-  arquivo <- file.path("dados", "previsao_tempo", "previsao_tempo.csv")
+  arquivo_integrado <- file.path("..", "..", ".runtime", "exports", "fase2", "previsao_tempo.csv")
+  arquivo_original <- file.path("dados", "previsao_tempo", "previsao_tempo.csv")
+  arquivo <- if (file.exists(arquivo_integrado)) arquivo_integrado else arquivo_original
   if (!file.exists(arquivo)) {
     stop("Arquivo de previsao do tempo nao encontrado em dados/previsao_tempo/previsao_tempo.csv. Execute scripts/weather_forecast.py primeiro.")
   }
@@ -102,6 +104,17 @@ main <- function() {
 
   if (!"ts_iso" %in% names(iot) || !"ts_iso" %in% names(weather)) {
     stop("Ambos os datasets precisam ter a coluna ts_iso como timestamp UTC.")
+  }
+
+  # Bloqueia correlação temporal falsa (ex.: IoT de maio vs. previsão de novembro).
+  valid_iot <- as.numeric(iot$ts_iso)
+  valid_weather <- as.numeric(weather$ts_iso)
+  valid_iot <- valid_iot[is.finite(valid_iot)]
+  valid_weather <- valid_weather[is.finite(valid_weather)]
+  if (length(valid_iot) == 0 || length(valid_weather) == 0 ||
+      max(valid_iot) < min(valid_weather) || min(valid_iot) > max(valid_weather)) {
+    stop("IoT e previsao meteorologica nao possuem datas sobrepostas. " ,
+         "Nao e correto integrar registros de periodos diferentes.")
   }
 
   valid_count <- sum(is.finite(as.numeric(weather$ts_iso)))

@@ -25,23 +25,6 @@ st.caption("Regressao supervisionada — targets: rainfall (necessidade hidrica)
 st.warning(HISTORICAL_LIMITATION)
 st.caption(COMPATIBILITY_LIMITATION)
 
-# ── Treinar / carregar ────────────────────────────────────────────────────────
-col_btn, col_info = st.columns([1, 4])
-with col_btn:
-    retreinar = st.button("Retreinar modelos", disabled=True)
-with col_info:
-    info_card("Artefatos históricos preservados. Sua substituição exige proposta e autorização específica; use o backup verificado para recuperação.")
-
-if retreinar:
-    with st.spinner("Treinando modelos... (pode levar alguns segundos)"):
-        try:
-            from src.ml.train import treinar
-            resultados = treinar(verbose=False)
-            st.success("Modelos retreinados com sucesso.")
-            st.session_state["ml_retreinado"] = True
-        except Exception as e:
-            erro_publico("Treinamento não concluído. Os artefatos históricos devem ser preservados.", e)
-            st.stop()
 
 # ── Carregar metricas salvas ─────────────────────────────────────────────────
 metricas_path = MODELS_DIR / "metricas.json"
@@ -60,7 +43,7 @@ except Exception as e:
 try:
     # ── Tabs por target ───────────────────────────────────────────────────────────
     targets = list(resultados.keys())
-    tabs = st.tabs([f"Target: {t}" for t in targets] + ["Feature Importance"])
+    tabs = st.tabs([f"Target: {t}" for t in targets])
 
     for i, target in enumerate(targets):
         with tabs[i]:
@@ -112,7 +95,7 @@ try:
             # Analise de residuos
             residuos_path = MODELS_DIR / f"residuos_{target}.csv"
             if residuos_path.exists():
-                st.markdown("#### Analise de Residuos (melhor modelo)")
+                st.markdown("#### Analise de Residuos (Modelo selecionado pelo maior R² no teste)")
                 df_res = pd.read_csv(residuos_path)
 
                 c1, c2 = st.columns(2)
@@ -158,27 +141,6 @@ try:
                 ))
                 st.plotly_chart(fig_pv, use_container_width=True)
 
-    # ── Feature Importance ────────────────────────────────────────────────────────
-    with tabs[len(targets)]:
-        st.markdown("#### Feature Importance — Random Forest")
-        for target in targets:
-            imp_path = MODELS_DIR / f"importancias_{target}.csv"
-            if imp_path.exists():
-                df_imp = pd.read_csv(imp_path).head(15)
-                fig = px.bar(
-                    df_imp,
-                    x="importance",
-                    y="feature",
-                    orientation="h",
-                    title=f"Feature Importance — target: {target}",
-                    labels={"importance": "Importancia", "feature": "Variavel"},
-                    color="importance",
-                    color_continuous_scale="Teal",
-                )
-                fig.update_layout(yaxis=dict(autorange="reversed"))
-                st.plotly_chart(fig, use_container_width=True)
-            else:
-                st.info(f"Importancias do target {target} nao disponiveis (modelo pode nao ser RandomForest).")
 
 except Exception as error:
     erro_publico("Diagnóstico dos modelos indisponível ou inválido. Verifique métricas e arquivos de resíduos antes de tentar novamente.", error)

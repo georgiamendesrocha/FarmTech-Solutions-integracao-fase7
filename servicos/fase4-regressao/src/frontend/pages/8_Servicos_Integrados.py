@@ -10,7 +10,7 @@ configure_dashboard()
 
 import streamlit as st
 import plotly.express as px
-from farmtech_integracao import fase1, fase2, fase3, fase6
+from farmtech_integracao import fase1, fase2, fase3, fase6, fase7
 from farmtech_integracao.ui import apply_theme, navigation_link
 from farmtech_integracao.ui import info_card
 
@@ -26,9 +26,10 @@ services = [
     ("IoT e meteorologia", "fase2", fase2, "pages/10_IoT_Meteorologia.py", "Previsão por cidade; requisitos de R, Wokwi e captura."),
     ("Consultas Oracle / CSV", "fase3", fase3, "pages/11_Oracle_Consultas.py", "Leitura com origem selecionada explicitamente."),
     ("Visão computacional", "fase6", fase6, "pages/12_Visao_Computacional.py", "Avaliação experimental da YOLO customizada em CPU."),
+    ("Alertas — Fase 7", "fase7", fase7, "pages/13_Alertas_Fase7.py", "Avaliação local de sensores, demonstrações e prévia da mensagem. Sem envio SNS."),
 ]
 statuses = []
-for column, (label, phase, module, page, description) in zip(st.columns(4), services):
+for column, (label, phase, module, page, description) in zip(st.columns(len(services)), services):
     result = module.availability()
     statuses.append({"Serviço": label, "Pré-condições locais": "Disponível" if result.ok else "Pendente", "Quantidade": 1})
     with column:

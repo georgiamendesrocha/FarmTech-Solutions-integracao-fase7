@@ -200,7 +200,7 @@ F4_LABELS = {
 F4_ICONS = {1: "sensors", 2: "monitoring", 3: "model_training", 4: "query_stats", 5: "eco", 6: "history", 7: "public"}
 F7_ICONS = {
     "servico": "hub", "gest": "agriculture", "iot": "device_hub",
-    "oracle": "database", "visao": "image_search",
+    "oracle": "database", "visao": "image_search", "alert": "notifications_active",
 }
 
 
@@ -222,6 +222,8 @@ def numbered_page(file_path: Path):
             title, icon = "Consultas e Oracle", F7_ICONS["oracle"]
         elif "visao" in name or "yolo" in name:
             title, icon = "Visão Computacional", F7_ICONS["visao"]
+        elif "alert" in name:
+            title, icon = "Alertas — Fase 7", F7_ICONS["alert"]
         elif "iot" in name:
             title, icon = "IoT e Meteorologia", F7_ICONS["iot"]
         else:

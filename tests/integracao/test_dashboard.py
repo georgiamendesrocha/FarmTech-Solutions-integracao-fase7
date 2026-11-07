@@ -38,12 +38,12 @@ class DashboardTests(unittest.TestCase):
         from streamlit.testing.v1 import AppTest
         return AppTest.from_file(str(SERVICE_DIRS["fase4"] / "src" / "frontend" / filename), default_timeout=60).run()
 
-    def test_all_thirteen_screens_render_without_executing_service_workers(self):
+    def test_all_fourteen_screens_render_without_executing_service_workers(self):
         from farmtech_integracao import runtime
         with patch.object(runtime, "_execute", side_effect=AssertionError("Abertura não deve executar serviços")) as execute:
             folder = SERVICE_DIRS["fase4"] / "src" / "frontend" / "pages"
             names = ["app.py", *["pages/"+p.name for p in sorted(folder.glob("*.py"))]]
-            self.assertEqual(len(names), 13)
+            self.assertEqual(len(names), 14)
             # A navegação principal registra os destinos usados por st.page_link.
             # Executar uma página isolada no AppTest não oferece esse registro.
             page = self.run_page("app.py")

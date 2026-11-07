@@ -22,11 +22,11 @@ SERVICE_DIRS = {
     f"fase{number}": PROJECT_ROOT / "servicos" / directory
     for number, directory in enumerate((
         "fase1-gestao", "fase2-iot", "fase3-dashboard", "fase4-regressao",
-        "fase5-ml", "fase6-visao",
+        "fase5-ml", "fase6-visao", "fase7-alertas-aws",
     ), 1)
 }
 WORKERS = {key: Path(__file__).parent / "workers" / f"{key}_worker.py"
-           for key in ("fase1", "fase2", "fase3", "fase4", "fase6")}
+           for key in ("fase1", "fase2", "fase3", "fase4", "fase6", "fase7")}
 MAX_OUTPUT_BYTES = 1024 * 1024
 MAX_INPUT_BYTES = 32768
 

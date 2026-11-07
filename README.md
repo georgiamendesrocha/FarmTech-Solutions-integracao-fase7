@@ -34,6 +34,7 @@
 - [Evidências visuais](#demonstrações-visuais-da-dashboard).
 - [Parte 2 — Alertas AWS](#fase-7--parte-2-serviço-de-alertas-aws).
   - [Validação AWS — Evidências complementares](#validação-aws--evidências-complementares).
+- [Ir Além 1 — Amazon Rekognition](#ir-além-1--amazon-rekognition).
 - [Testes e validações](#reprodução-dos-testes-e-validações).
 - [Limitações e segurança](#resultados-limitações-e-segurança).
 - [Documentação complementar](#documentação-complementar-e-repositórios-originais).
@@ -465,6 +466,14 @@ $exemplo = & $pythonDashboard -B servicos/fase7-alertas-aws/gerar_exemplo.py --t
 ```
 
 Os comandos não usam `--enviar` e não publicam. Os geradores recusam sobrescrita e identificam dados sintéticos. O JSON histórico pode estar fora da janela e não deve receber datas fictícias para aparentar atualidade. Configuração, exceções e envio independente estão no [README do serviço AWS](servicos/fase7-alertas-aws/README.md).
+
+## Ir Além 1 — Amazon Rekognition
+
+Atividade exploratória com imagens de milho e banana utilizando **Amazon Rekognition Label Detection**, com análise dos resultados e das identificações secundárias incorretas. Inclui comparação conceitual com a YOLO utilizada na Fase 6 e um estudo de caso com proposta conceitual de tratamento das detecções em aplicações agrícolas.
+
+[**Acessar documentação completa do Ir Além 1**](IR-ALEM/ir-alem-1-rekognition/README.md)
+
+**Vídeo demonstrativo:** pendente de gravação e publicação no YouTube como não listado, com duração máxima de quatro minutos.
 
 ## Reprodução dos testes e validações
 

@@ -1,0 +1,8 @@
+# Perfil opcional da consulta Oracle integrada - Windows, CPython 3.11.9.
+# Inclui a dashboard e o driver thin observado na .venv-f402.
+# Nao instala o servidor Oracle nem exige credenciais para iniciar a dashboard.
+# Credenciais/rede so sao necessarias ao solicitar uma consulta Oracle.
+# Pin direto observado; nao e um lock completo das transitivas do driver.
+# Na raiz: <python-do-ambiente> -m pip install -r requirements-oracle.txt
+-r requirements.txt
+oracledb==26.1.0

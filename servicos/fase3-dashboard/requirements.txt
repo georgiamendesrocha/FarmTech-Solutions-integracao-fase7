@@ -18,7 +18,7 @@ oracledb>=2.3.0                  # driver thin — sem Oracle Instant Client
 requests>=2.31.0
 
 # ── Dashboard ────────────────────────────────────────────────
-streamlit>=1.35.0
+streamlit>=1.36.0                # st.Page e st.navigation usados pelo frontend
 plotly>=5.18.0                   # gráficos interativos
 kaleido>=0.2.1                  # exportação de gráficos Plotly para PNG
 

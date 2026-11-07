@@ -1,0 +1,11 @@
+# Dashboard integrada - Windows, CPython 3.11.9.
+# Instalar na .venv-f402 da Fase 4, sem substituir ambientes existentes.
+# Na raiz: <python-do-ambiente> -m pip install -r requirements.txt
+# Executar: python iniciar.py
+# Reutiliza os pins diretos e as constraints observadas da Fase 4.
+# Nao inclui YOLO/CNN, captura serial, notebooks, API historica F3 ou SNS.
+# Oracle e opcional: usar requirements-oracle.txt quando necessario.
+# Testes integrados usam unittest e streamlit.testing, sem pytest adicional.
+# Perfil local conferido; instalacao em ambiente limpo nao foi executada.
+-c servicos/fase4-regressao/constraints-f402.txt
+-r servicos/fase4-regressao/requirements.txt

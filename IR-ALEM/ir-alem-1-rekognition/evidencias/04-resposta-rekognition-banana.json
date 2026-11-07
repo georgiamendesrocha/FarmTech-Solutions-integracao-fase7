@@ -1,0 +1,137 @@
+{
+    "Labels": [
+        {
+            "Name": "Banana",
+            "Confidence": 100,
+            "Instances": [
+                {
+                    "BoundingBox": {
+                        "Width": 0.6819486618041992,
+                        "Height": 0.7689127326011658,
+                        "Left": 0.08106651902198792,
+                        "Top": 0.02190336212515831
+                    },
+                    "Confidence": 99.97622680664062
+                }
+            ],
+            "Parents": [
+                {
+                    "Name": "Food"
+                },
+                {
+                    "Name": "Fruit"
+                },
+                {
+                    "Name": "Plant"
+                },
+                {
+                    "Name": "Produce"
+                }
+            ],
+            "Aliases": [],
+            "Categories": [
+                {
+                    "Name": "Food and Beverage"
+                }
+            ]
+        },
+        {
+            "Name": "Food",
+            "Confidence": 100,
+            "Instances": [],
+            "Parents": [],
+            "Aliases": [],
+            "Categories": [
+                {
+                    "Name": "Food and Beverage"
+                }
+            ]
+        },
+        {
+            "Name": "Fruit",
+            "Confidence": 100,
+            "Instances": [],
+            "Parents": [
+                {
+                    "Name": "Food"
+                },
+                {
+                    "Name": "Plant"
+                },
+                {
+                    "Name": "Produce"
+                }
+            ],
+            "Aliases": [],
+            "Categories": [
+                {
+                    "Name": "Food and Beverage"
+                }
+            ]
+        },
+        {
+            "Name": "Plant",
+            "Confidence": 100,
+            "Instances": [],
+            "Parents": [],
+            "Aliases": [],
+            "Categories": [
+                {
+                    "Name": "Plants and Flowers"
+                }
+            ]
+        },
+        {
+            "Name": "Produce",
+            "Confidence": 100,
+            "Instances": [],
+            "Parents": [
+                {
+                    "Name": "Food"
+                }
+            ],
+            "Aliases": [],
+            "Categories": [
+                {
+                    "Name": "Food and Beverage"
+                }
+            ]
+        },
+        {
+            "Name": "Pear",
+            "Confidence": 70.8035659790039,
+            "Instances": [
+                {
+                    "BoundingBox": {
+                        "Width": 0.1605089157819748,
+                        "Height": 0.2335830181837082,
+                        "Left": 0.38338083028793335,
+                        "Top": 0.5978562235832214
+                    },
+                    "Confidence": 70.8035659790039
+                }
+            ],
+            "Parents": [
+                {
+                    "Name": "Food"
+                },
+                {
+                    "Name": "Fruit"
+                },
+                {
+                    "Name": "Plant"
+                },
+                {
+                    "Name": "Produce"
+                }
+            ],
+            "Aliases": [],
+            "Categories": [
+                {
+                    "Name": "Food and Beverage"
+                }
+            ]
+        }
+    ],
+    "LabelModelVersion": "3.0"
+}

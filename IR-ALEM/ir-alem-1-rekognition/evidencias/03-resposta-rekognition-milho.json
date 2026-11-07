@@ -1,0 +1,89 @@
+{
+    "Labels": [
+        {
+            "Name": "Corn",
+            "Confidence": 99.8350830078125,
+            "Instances": [],
+            "Parents": [
+                {
+                    "Name": "Food"
+                },
+                {
+                    "Name": "Grain"
+                },
+                {
+                    "Name": "Plant"
+                },
+                {
+                    "Name": "Produce"
+                }
+            ],
+            "Aliases": [],
+            "Categories": [
+                {
+                    "Name": "Food and Beverage"
+                }
+            ]
+        },
+        {
+            "Name": "Food",
+            "Confidence": 99.8350830078125,
+            "Instances": [],
+            "Parents": [],
+            "Aliases": [],
+            "Categories": [
+                {
+                    "Name": "Food and Beverage"
+                }
+            ]
+        },
+        {
+            "Name": "Grain",
+            "Confidence": 99.8350830078125,
+            "Instances": [],
+            "Parents": [
+                {
+                    "Name": "Food"
+                },
+                {
+                    "Name": "Produce"
+                }
+            ],
+            "Aliases": [],
+            "Categories": [
+                {
+                    "Name": "Food and Beverage"
+                }
+            ]
+        },
+        {
+            "Name": "Plant",
+            "Confidence": 99.8350830078125,
+            "Instances": [],
+            "Parents": [],
+            "Aliases": [],
+            "Categories": [
+                {
+                    "Name": "Plants and Flowers"
+                }
+            ]
+        },
+        {
+            "Name": "Produce",
+            "Confidence": 99.8350830078125,
+            "Instances": [],
+            "Parents": [
+                {
+                    "Name": "Food"
+                }
+            ],
+            "Aliases": [],
+            "Categories": [
+                {
+                    "Name": "Food and Beverage"
+                }
+            ]
+        }
+    ],
+    "LabelModelVersion": "3.0"
+}

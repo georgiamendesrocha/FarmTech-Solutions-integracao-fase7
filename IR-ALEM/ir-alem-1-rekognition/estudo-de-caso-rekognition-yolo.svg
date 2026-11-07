@@ -1,0 +1,241 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="210mm" height="297mm" viewBox="0 0 1240 1754" role="img" aria-labelledby="titulo descricao" xml:lang="pt-BR">
+  <title id="titulo">Rekognition e YOLO — estudo de caso visual da FarmTech Solutions</title>
+  <desc id="descricao">Painel acadêmico autoral em uma página A4. O experimento Rekognition Labels 3.0, realizado manualmente no console AWS em us-east-1, retornou Corn com confiança de 99,8351%, Banana com 100% e, na mesma imagem de banana, Pear incorreto com 70,8036%. Banana e Pear coexistiram como rótulos, sem decisão exclusiva. Confiança não implica probabilidade estatisticamente calibrada. A comparação documental com a YOLOv5s customizada da Fase 6 aborda objetivo, treinamento, inferência, saídas e personalização, sem comparar métricas de protocolos diferentes. O fluxo conceitual segue Rekognition, avaliação individual das detecções, tratamento dos resultados e decisão assistida. Dois caminhos preservam Banana como identificação candidata válida e sinalizam Pear, identificação secundária incorreta no experimento, para revisão ou filtragem por regras previamente validadas. Casos ambíguos seguem para revisão humana conforme o risco. Classes e limiares não garantem eliminar erros. Essas estratégias não foram implementadas ou testadas; preservar uma candidata não autoriza manejo automático. Fontes locais vinculadas ao final.</desc>
+  <defs>
+    <style>
+      text { font-family: "Segoe UI", Arial, Helvetica, sans-serif; fill: #18332D; }
+      .eyebrow { font-size: 20px; font-weight: 600; letter-spacing: 1px; }
+      .hero { font-size: 48px; font-weight: 700; fill: #FFFFFF; }
+      .hero-subtitle { font-size: 27px; fill: #E5F0EB; }
+      .hero-note { font-size: 21px; fill: #C7DDD2; }
+      .section { font-size: 28px; font-weight: 700; }
+      .index { font-size: 20px; font-weight: 700; fill: #FFFFFF; text-anchor: middle; }
+      .meta { font-size: 21px; fill: #4B625A; }
+      .card-label { font-size: 20px; font-weight: 600; letter-spacing: 0.5px; fill: #4B625A; }
+      .label { font-size: 30px; font-weight: 700; }
+      .score { font-size: 40px; font-weight: 700; }
+      .caption { font-size: 20px; fill: #4B625A; }
+      .callout-title { font-size: 24px; font-weight: 700; }
+      .body { font-size: 22px; }
+      .table-header { font-size: 23px; font-weight: 700; }
+      .row-label { font-size: 22px; font-weight: 600; }
+      .small { font-size: 20px; fill: #4B625A; }
+      .concept { font-size: 20px; font-weight: 700; fill: #24604B; }
+      .step-title { font-size: 21px; font-weight: 700; }
+      .step-body { font-size: 18px; }
+      .flow-label { font-size: 20px; font-weight: 600; }
+      .conclusion { font-size: 26px; font-weight: 700; fill: #FFFFFF; }
+      .conclusion-body { font-size: 20px; fill: #E5F0EB; }
+      .source { font-size: 20px; fill: #24604B; text-decoration: underline; }
+      .white { fill: #FFFFFF; }
+      .amber { fill: #805114; }
+      .rule { stroke: #D2DFD7; stroke-width: 1; }
+      .arrow { fill: none; stroke: #43715E; stroke-width: 2; marker-end: url(#seta); }
+      .arrow-amber { fill: none; stroke: #9A661D; stroke-width: 2; marker-end: url(#seta-amber); }
+    </style>
+    <marker id="seta" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M 0 1 L 8 5 L 0 9 Z" fill="#43715E"/>
+    </marker>
+    <marker id="seta-amber" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M 0 1 L 8 5 L 0 9 Z" fill="#9A661D"/>
+    </marker>
+    <clipPath id="cabecalho"><rect width="1240" height="224"/></clipPath>
+  </defs>
+
+  <rect width="1240" height="1754" fill="#F8FAF8"/>
+
+  <!-- Cabeçalho: identidade visual vetorial, sem imagens externas. -->
+  <g id="identidade">
+    <rect width="1240" height="224" fill="#173F32"/>
+    <g clip-path="url(#cabecalho)" fill="none" stroke="#A4C6B3" stroke-width="1.5" opacity="0.16" aria-hidden="true">
+      <circle cx="1210" cy="182" r="110"/>
+      <circle cx="1210" cy="182" r="150"/>
+      <circle cx="1210" cy="182" r="190"/>
+      <path d="M 1070 224 Q 1095 130 1240 38 M 1115 224 Q 1140 147 1240 94"/>
+    </g>
+    <text x="64" y="53" class="eyebrow white">FARMTECH SOLUTIONS · FIAP</text>
+    <text x="1176" y="53" class="eyebrow white" text-anchor="end">FASE 7 · IR ALÉM 1</text>
+    <text x="64" y="114" class="hero">Rekognition × YOLO</text>
+    <text x="64" y="158" class="hero-subtitle">Reconhecimento correto, identificação adicional incorreta</text>
+    <text x="64" y="196" class="hero-note">Estudo de caso visual · Evidência exploratória e decisão assistida</text>
+    <rect y="220" width="1240" height="4" fill="#88B39A"/>
+  </g>
+
+  <!-- 01 — Resultados reais: os percentuais pertencem a rótulos individuais. -->
+  <g id="resultados" aria-label="Resultados reais do Rekognition">
+    <circle cx="84" cy="269" r="20" fill="#24604B"/>
+    <text x="84" y="276" class="index">01</text>
+    <text x="120" y="278" class="section">O que o experimento mostrou</text>
+    <text x="64" y="316" class="meta">Rekognition Labels 3.0 · Console AWS / us-east-1 · Duas imagens exploratórias</text>
+
+    <g id="resultado-milho" aria-label="Milho: Corn, confiança do rótulo de 99,8351%">
+      <rect x="64" y="336" width="354" height="168" rx="12" fill="#FFFFFF" stroke="#CCDAD0"/>
+      <rect x="84" y="354" width="34" height="4" rx="2" fill="#24604B"/>
+      <text x="84" y="385" class="card-label">IMAGEM DE MILHO</text>
+      <text x="84" y="422" class="label">Corn</text>
+      <text x="84" y="465" class="score">99,8351%</text>
+      <text x="84" y="490" class="caption">Confiança do rótulo</text>
+    </g>
+    <g id="resultado-banana" aria-label="Banana: Banana, confiança do rótulo de 100%">
+      <rect x="442" y="336" width="354" height="168" rx="12" fill="#FFFFFF" stroke="#CCDAD0"/>
+      <rect x="462" y="354" width="34" height="4" rx="2" fill="#24604B"/>
+      <text x="462" y="385" class="card-label">IMAGEM DE BANANA</text>
+      <text x="462" y="422" class="label">Banana</text>
+      <text x="462" y="465" class="score">100%</text>
+      <text x="462" y="490" class="caption">Confiança do rótulo</text>
+    </g>
+    <g id="resultado-pear" aria-label="Na mesma imagem de banana: Pear incorreto, confiança do rótulo de 70,8036%">
+      <rect x="820" y="336" width="356" height="168" rx="12" fill="#FFF7E9" stroke="#D6B77E"/>
+      <rect x="840" y="354" width="34" height="4" rx="2" fill="#9A661D"/>
+      <text x="840" y="385" class="card-label amber">NA IMAGEM DE BANANA</text>
+      <text x="840" y="422" class="label amber">Pear · incorreto</text>
+      <text x="840" y="465" class="score amber">70,8036%</text>
+      <text x="840" y="490" class="caption amber">Confiança do rótulo adicional</text>
+    </g>
+
+    <text x="64" y="533" class="small">Valores detalhados: registro do experimento [1]. Capturas exibem percentuais arredondados.</text>
+
+    <rect x="64" y="552" width="1112" height="122" rx="10" fill="#EDF3EF"/>
+    <rect x="64" y="566" width="4" height="94" rx="2" fill="#43715E"/>
+    <text x="88" y="584" class="callout-title">Leitura correta</text>
+    <text x="88" y="617" class="body">Banana recebeu 100% e coexistiu com Pear incorreto: não houve decisão exclusiva.</text>
+    <text x="88" y="649" class="body">Confiança não equivale necessariamente a probabilidade estatisticamente calibrada.</text>
+  </g>
+
+  <!-- 02 — Comparação documental, sem ranking quantitativo entre os modelos. -->
+  <g id="comparacao" aria-label="Comparação conceitual com a YOLOv5s customizada da Fase 6">
+    <circle cx="84" cy="714" r="20" fill="#24604B"/>
+    <text x="84" y="721" class="index">02</text>
+    <text x="120" y="723" class="section">O que muda em relação à YOLO da Fase 6</text>
+
+    <rect x="64" y="744" width="1112" height="396" rx="10" fill="#FFFFFF" stroke="#CCDAD0"/>
+    <path d="M 74 744 H 1166 Q 1176 744 1176 754 V 800 H 64 V 754 Q 64 744 74 744 Z" fill="#DFEBE3"/>
+    <rect x="65" y="868" width="1110" height="68" fill="#F5F8F5"/>
+    <rect x="65" y="1004" width="1110" height="68" fill="#F5F8F5"/>
+
+    <path d="M 64 800 H 1176 M 64 868 H 1176 M 64 936 H 1176 M 64 1004 H 1176 M 64 1072 H 1176 M 276 744 V 1140 M 726 744 V 1140" class="rule" fill="none"/>
+    <text x="88" y="780" class="table-header">Aspecto</text>
+    <text x="300" y="780" class="table-header">Rekognition · Ir Além 1</text>
+    <text x="750" y="780" class="table-header">YOLOv5s customizada · F6</text>
+
+    <text x="88" y="842" class="row-label">Objetivo</text>
+    <text x="300" y="827" class="body">Reconhecimento geral de objetos</text>
+    <text x="300" y="854" class="body">e conceitos em imagens.</text>
+    <text x="750" y="827" class="body">Detectar e localizar</text>
+    <text x="750" y="854" class="body">banana e milho.</text>
+
+    <text x="88" y="910" class="row-label">Treinamento</text>
+    <text x="300" y="895" class="body">Labels 3.0 pré-treinado;</text>
+    <text x="300" y="922" class="body">sem treinamento pelo grupo.</text>
+    <text x="750" y="895" class="body">Transfer learning de YOLOv5s;</text>
+    <text x="750" y="922" class="body">imagens e caixas anotadas.</text>
+
+    <text x="88" y="978" class="row-label">Inferência</text>
+    <text x="300" y="963" class="body">Console AWS; processamento</text>
+    <text x="300" y="990" class="body">gerenciado na nuvem.</text>
+    <text x="750" y="963" class="body">Pesos do projeto; inferência</text>
+    <text x="750" y="990" class="body">local em CPU documentada [3].</text>
+
+    <text x="88" y="1046" class="row-label">Saídas</text>
+    <text x="300" y="1031" class="body">Rótulos, escores e instâncias</text>
+    <text x="300" y="1058" class="body">localizadas quando retornadas.</text>
+    <text x="750" y="1031" class="body">Classe, confiança e caixa</text>
+    <text x="750" y="1058" class="body">por detecção.</text>
+
+    <text x="88" y="1114" class="row-label">Personalização</text>
+    <text x="300" y="1099" class="body">Modelo geral sem ajuste de</text>
+    <text x="300" y="1126" class="body">pesos nesta atividade.</text>
+    <text x="750" y="1099" class="body">Dados, classes, pesos e</text>
+    <text x="750" y="1126" class="body">limiar podem ser ajustados.</text>
+
+    <text x="64" y="1170" class="small">Comparação conceitual [1–3]. Protocolos diferentes não sustentam ranking de desempenho.</text>
+  </g>
+
+  <!-- 03 — Avaliação por rótulo: dois caminhos conceituais, sem descarte global da imagem. -->
+  <g id="fluxo-conceitual" aria-label="Fluxo conceitual, não implementado: avaliação individual, preservação de Banana e tratamento separado de Pear">
+    <circle cx="84" cy="1214" r="20" fill="#24604B"/>
+    <text x="84" y="1221" class="index">03</text>
+    <text x="120" y="1223" class="section">Apoio à decisão agrícola</text>
+    <text x="1176" y="1220" class="concept" text-anchor="end">Fluxo conceitual — não implementado</text>
+
+    <!-- Sequência de processamento proposta; cada linha abaixo acompanha um rótulo. -->
+    <g id="etapas-do-fluxo" aria-label="Rekognition, avaliação individual das detecções, tratamento dos resultados, decisão assistida">
+      <rect x="64" y="1244" width="210" height="62" rx="8" fill="#FFFFFF" stroke="#CCDAD0"/>
+      <text x="80" y="1281" class="step-title">Rekognition</text>
+      <path d="M 278 1275 H 296" class="arrow"/>
+      <rect x="300" y="1244" width="280" height="62" rx="8" fill="#FFFFFF" stroke="#CCDAD0"/>
+      <text x="318" y="1269" class="step-title">Avaliação individual</text>
+      <text x="318" y="1298" class="step-title">das detecções</text>
+      <path d="M 584 1275 H 602" class="arrow"/>
+      <rect x="606" y="1244" width="280" height="62" rx="8" fill="#FFFFFF" stroke="#CCDAD0"/>
+      <text x="624" y="1269" class="step-title">Tratamento dos</text>
+      <text x="624" y="1298" class="step-title">resultados</text>
+      <path d="M 890 1275 H 908" class="arrow"/>
+      <rect x="912" y="1244" width="264" height="62" rx="8" fill="#FFFFFF" stroke="#CCDAD0"/>
+      <text x="930" y="1281" class="step-title">Decisão assistida</text>
+    </g>
+
+    <g id="caminho-banana" aria-label="Banana com 100%: candidata válida preservada; uso operacional sujeito à validação e ao risco">
+      <rect x="64" y="1322" width="210" height="74" rx="8" fill="#EDF3EF" stroke="#88AB97"/>
+      <text x="80" y="1351" class="flow-label">Banana · 100%</text>
+      <text x="80" y="1378" class="step-body">Retorno do serviço</text>
+      <path d="M 278 1359 H 296" class="arrow"/>
+      <rect x="300" y="1322" width="280" height="74" rx="8" fill="#EDF3EF" stroke="#88AB97"/>
+      <text x="318" y="1351" class="flow-label">Candidata válida</text>
+      <text x="318" y="1378" class="step-body">Classe, escore e região.</text>
+      <path d="M 584 1359 H 602" class="arrow"/>
+      <rect x="606" y="1322" width="280" height="74" rx="8" fill="#EDF3EF" stroke="#88AB97"/>
+      <text x="624" y="1351" class="flow-label">Preservar Banana</text>
+      <text x="624" y="1378" class="step-body">como candidata válida.</text>
+      <path d="M 890 1359 H 908" class="arrow"/>
+      <rect x="912" y="1322" width="264" height="74" rx="8" fill="#EDF3EF" stroke="#88AB97"/>
+      <text x="930" y="1351" class="flow-label">Decisão assistida</text>
+      <text x="930" y="1378" class="step-body">Sujeita à validação e ao risco.</text>
+    </g>
+
+    <g id="caminho-pear" aria-label="Pear com 70,8036%: identificação secundária incorreta no experimento; revisão ou filtragem por regras previamente validadas, com revisão humana conforme risco">
+      <rect x="64" y="1408" width="210" height="88" rx="8" fill="#FFF7E9" stroke="#D6B77E"/>
+      <text x="80" y="1437" class="flow-label amber">Pear · 70,8036%</text>
+      <text x="80" y="1464" class="step-body">Retorno adicional</text>
+      <path d="M 278 1452 H 296" class="arrow-amber"/>
+      <rect x="300" y="1408" width="280" height="88" rx="8" fill="#FFF7E9" stroke="#D6B77E"/>
+      <text x="318" y="1437" class="flow-label amber">Secundária incorreta</text>
+      <text x="318" y="1464" class="step-body">neste experimento.</text>
+      <path d="M 584 1452 H 602" class="arrow-amber"/>
+      <rect x="606" y="1408" width="280" height="88" rx="8" fill="#FFF7E9" stroke="#D6B77E"/>
+      <text x="624" y="1437" class="flow-label amber">Revisão ou filtragem</text>
+      <text x="624" y="1464" class="step-body">Regras previamente</text>
+      <text x="624" y="1489" class="step-body">validadas.</text>
+      <path d="M 890 1452 H 908" class="arrow-amber"/>
+      <rect x="912" y="1408" width="264" height="88" rx="8" fill="#FFF7E9" stroke="#D6B77E"/>
+      <text x="930" y="1437" class="flow-label amber">Parecer assistido</text>
+      <text x="930" y="1464" class="step-body">Revisão humana</text>
+      <text x="930" y="1489" class="step-body">conforme risco.</text>
+    </g>
+
+    <text x="64" y="1523" class="small">Tratar cada rótulo separadamente. Classes e limiares não garantem eliminar erros. Proposta não testada.</text>
+  </g>
+
+  <g id="conclusao" aria-label="Conclusão crítica">
+    <rect x="64" y="1542" width="1112" height="108" rx="12" fill="#173F32"/>
+    <text x="88" y="1575" class="conclusion">Um objeto correto não valida todas as identificações.</text>
+    <text x="88" y="1607" class="conclusion-body">O falso positivo Pear exige avaliar o conjunto das saídas.</text>
+    <text x="88" y="1636" class="conclusion-body">Este experimento não valida decisões agrícolas automatizadas.</text>
+  </g>
+
+  <!-- Fontes da síntese: links locais relativos ao próprio SVG. -->
+  <g id="fontes" aria-label="Fontes documentais do projeto">
+    <text x="64" y="1678" class="row-label">Fontes do projeto</text>
+    <a href="README.md" aria-label="Fonte 1: README do Ir Além 1">
+      <text x="64" y="1705" class="source">[1] README do Ir Além 1</text>
+    </a>
+    <a href="../../servicos/fase6-visao/README.md" aria-label="Fonte 2: README da Fase 6">
+      <text x="360" y="1705" class="source">[2] README da Fase 6</text>
+    </a>
+    <a href="../../docs/VALIDACAO_COMPLEMENTAR_CPP_YOLO.md" aria-label="Fonte 3: validação complementar YOLO, 6 de novembro de 2026">
+      <text x="650" y="1705" class="source">[3] Validação YOLO · 06/11/2026</text>
+    </a>
+    <text x="64" y="1733" class="small">Elaboração própria · Síntese documental · Sem novas inferências ou treinamento</text>
+  </g>
+</svg>

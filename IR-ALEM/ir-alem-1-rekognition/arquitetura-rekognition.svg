@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="610" viewBox="0 0 1440 610" role="img" aria-labelledby="titulo descricao">
+  <title id="titulo">Arquitetura do experimento com Amazon Rekognition</title>
+  <desc id="descricao">Diagrama autoral de quatro etapas: navegador, Console AWS com envio manual de imagem de milho ou banana na demonstração Label detection, Amazon Rekognition Label Detection com o modelo pré-treinado Rekognition Labels 3.0, e resposta JSON com rótulos, confiança, instâncias e caixas delimitadoras quando retornadas, e versão do modelo. As etapas representam a sequência lógica: o Console AWS é acessado pelo navegador.</desc>
+  <defs>
+    <marker id="seta" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M 0 0 L 9 5 L 0 10 Z" fill="#2C5F4E"/>
+    </marker>
+    <style>
+      text { font-family: "Segoe UI", Arial, Helvetica, sans-serif; fill: #18323A; }
+      .titulo { font-size: 32px; font-weight: 700; }
+      .subtitulo { font-size: 21px; fill: #3D545B; }
+      .etapa { font-size: 18px; font-weight: 700; letter-spacing: 0.7px; fill: #245642; }
+      .numero { font-size: 18px; font-weight: 700; fill: #FFFFFF; text-anchor: middle; }
+      .nome { font-size: 24px; font-weight: 700; }
+      .corpo { font-size: 20px; }
+      .modelo { font-size: 19px; font-weight: 600; fill: #245642; }
+      .campo { font-family: Consolas, "Courier New", monospace; font-size: 18px; }
+      .nota { font-size: 20px; fill: #3D545B; }
+      .fonte { font-size: 18px; fill: #3D545B; }
+      .cartao { fill: #F7FAF8; stroke: #8BA49B; stroke-width: 1.5; }
+      .conexao { fill: none; stroke: #2C5F4E; stroke-width: 2.5; marker-end: url(#seta); }
+    </style>
+  </defs>
+
+  <rect width="1440" height="610" fill="#FFFFFF"/>
+  <text x="64" y="67" class="titulo">Arquitetura do experimento com Amazon Rekognition</text>
+  <text x="64" y="108" class="subtitulo">FarmTech Solutions · Fase 7 · Ir Além 1</text>
+  <text x="64" y="152" class="subtitulo">Fluxo manual do experimento</text>
+
+  <!-- Etapa 1: acesso à interface web. -->
+  <rect x="64" y="182" width="292" height="300" rx="14" class="cartao"/>
+  <circle cx="100" cy="220" r="18" fill="#2C5F4E"/>
+  <text x="100" y="226" class="numero">1</text>
+  <text x="132" y="226" class="etapa">ACESSO</text>
+  <text x="86" y="275" class="nome">Navegador</text>
+  <text x="86" y="327" class="corpo">
+    <tspan x="86" dy="0">Acesso à interface web</tspan>
+    <tspan x="86" dy="30">do console na AWS.</tspan>
+  </text>
+
+  <path d="M 362 332 H 394" class="conexao"/>
+
+  <!-- Etapa 2: operação manual na demonstração do serviço. -->
+  <rect x="404" y="182" width="292" height="300" rx="14" class="cartao"/>
+  <circle cx="440" cy="220" r="18" fill="#2C5F4E"/>
+  <text x="440" y="226" class="numero">2</text>
+  <text x="472" y="226" class="etapa">ENVIO</text>
+  <text x="426" y="275" class="nome">Console AWS</text>
+  <text x="426" y="320" class="corpo">
+    <tspan x="426" dy="0">Demonstração</tspan>
+    <tspan x="426" dy="29">“Label detection”.</tspan>
+    <tspan x="426" dy="44">Envio manual da imagem</tspan>
+    <tspan x="426" dy="29">de milho ou banana.</tspan>
+  </text>
+
+  <path d="M 702 332 H 734" class="conexao"/>
+
+  <!-- Etapa 3: inferência do modelo gerenciado e pré-treinado. -->
+  <rect x="744" y="182" width="292" height="300" rx="14" class="cartao"/>
+  <circle cx="780" cy="220" r="18" fill="#2C5F4E"/>
+  <text x="780" y="226" class="numero">3</text>
+  <text x="812" y="226" class="etapa">INFERÊNCIA</text>
+  <text x="766" y="275" class="nome">Amazon Rekognition</text>
+  <text x="766" y="306" class="corpo">Label Detection</text>
+  <text x="766" y="356" class="corpo">
+    <tspan x="766" dy="0">Inferência gerenciada</tspan>
+    <tspan x="766" dy="30">com modelo pré-treinado.</tspan>
+  </text>
+  <text x="766" y="441" class="modelo">Rekognition Labels 3.0</text>
+
+  <path d="M 1042 332 H 1074" class="conexao"/>
+
+  <!-- Etapa 4: campos observados na resposta do serviço. -->
+  <rect x="1084" y="182" width="292" height="300" rx="14" class="cartao"/>
+  <circle cx="1120" cy="220" r="18" fill="#2C5F4E"/>
+  <text x="1120" y="226" class="numero">4</text>
+  <text x="1152" y="226" class="etapa">RESULTADO</text>
+  <text x="1106" y="275" class="nome">Resposta JSON</text>
+  <text x="1106" y="323" class="campo">Labels / Confidence</text>
+  <text x="1106" y="367" class="campo">Instances / BoundingBox</text>
+  <text x="1106" y="396" class="corpo">(quando retornadas)</text>
+  <text x="1106" y="441" class="campo">LabelModelVersion</text>
+
+  <text x="64" y="530" class="nota">As etapas mostram a sequência lógica; o Console AWS é acessado pelo navegador.</text>
+  <text x="64" y="570" class="fonte">Fonte: elaboração própria, com base no experimento documentado.</text>
+</svg>

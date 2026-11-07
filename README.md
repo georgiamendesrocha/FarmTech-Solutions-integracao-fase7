@@ -47,8 +47,17 @@ A FarmTech Solutions reúne gestão agrícola, sensores, persistência, análise
 
 A entrega compreende duas partes:
 
-- **Parte 1 — sistema integrado:** uma entrada local, uma página inicial e treze páginas funcionais, com as análises da F4, integrações das Fases 1, 2, 3 e 6 e a avaliação local dos alertas.
-- **Parte 2 — mensageria AWS:** serviço independente com execução original em EC2/SNS documentada por capturas históricas. A evolução atual consome também o contrato dos sensores F2 e oferece prévias na dashboard, sem publicação SNS pela interface.
+### Entrega 1 — Sistema integrado e dashboard (Parte 1 da Fase 7)
+
+Uma entrada local, uma página inicial e treze páginas funcionais, com as análises da F4, integrações das Fases 1, 2, 3 e 6 e a avaliação local dos alertas.
+
+### Entrega 2 — Serviço de Alertas na AWS (Parte 2 da Fase 7)
+
+- **Responsável:** Edemir Sufiatti.
+- **Código da implementação:** [servicos/fase7-alertas-aws/](servicos/fase7-alertas-aws/).
+- **Documentação técnica:** [servicos/fase7-alertas-aws/README.md](servicos/fase7-alertas-aws/README.md).
+
+Serviço independente com execução original em EC2/SNS documentada por capturas históricas. A evolução atual consome também o contrato dos sensores F2 e oferece prévias na dashboard, sem publicação SNS pela interface.
 
 O sistema distingue dados acadêmicos, históricos de sensores, simulações, previsões externas e observações oficiais. Os resultados **não constituem validação agronômica, controle de irrigação em produção ou certificação dos modelos**.
 

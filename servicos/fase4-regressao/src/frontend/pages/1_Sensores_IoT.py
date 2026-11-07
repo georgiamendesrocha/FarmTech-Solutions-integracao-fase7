@@ -2,6 +2,7 @@
 Pagina: Sensores IoT — leituras registradas do prototipo ESP32/Wokwi.
 """
 
+import os
 import sys
 from pathlib import Path
 
@@ -13,7 +14,8 @@ import plotly.express as px
 import streamlit as st
 
 from farmtech_integracao.ui import info_card
-from src.db.database import get_leituras, get_ultima_leitura, validar_leitura
+from farmtech_integracao.demo import demo_path
+from src.db.database import get_leituras, get_ultima_leitura, resolve_db_path, validar_leitura
 from src.frontend.feedback import erro_publico
 from src.frontend.scheduler import INTERVALO, UMIDADE_LIMIAR, estado_simulacao, iniciar_scheduler, encerrar_scheduler
 
@@ -25,6 +27,8 @@ st.caption("Leituras registradas/simuladas do prototipo ESP32/Wokwi, armazenadas
 # ── Botao de atualizar ───────────────────────────────────────────────────────
 holder = st.session_state.setdefault("scheduler_holder", {})
 estado = estado_simulacao(holder)
+banco_demo = os.getenv("FARMTECH_INTEGRACAO") == "1" and resolve_db_path() == demo_path().resolve()
+demo_ausente = banco_demo and not resolve_db_path().is_file()
 
 col_atualizar, col_iniciar, col_parar = st.columns(3)
 
@@ -33,7 +37,7 @@ with col_atualizar:
         st.rerun()
 
 with col_iniciar:
-    if st.button("Iniciar simulação", disabled=estado == "ativa"):
+    if st.button("Iniciar simulação", disabled=estado == "ativa" or demo_ausente or not banco_demo):
         try:
             from src.db.database import validar_banco
             validar_banco()
@@ -49,6 +53,21 @@ with col_parar:
             st.rerun()
         except Exception as exc:
             erro_publico("Não foi possível parar a simulação.", exc)
+
+if demo_ausente:
+    st.warning(
+        "A base de demonstração ainda não foi preparada. Na raiz do repositório, "
+        "execute `python iniciar.py --preparar-demo` e depois atualize esta página. "
+        "A simulação depende dessa preparação e não cria o banco automaticamente."
+    )
+    st.stop()
+
+if not banco_demo:
+    st.caption(
+        "A simulação manual é permitida somente no banco de demonstração do modo integrado. "
+        "Para utilizá-la, prepare a base com `python iniciar.py --preparar-demo` e inicie "
+        "pelo menu de `python iniciar.py`, sem um DB_PATH apontando para outro banco."
+    )
 
 estado = estado_simulacao(holder)
 if estado == "ativa":

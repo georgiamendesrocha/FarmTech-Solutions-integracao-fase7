@@ -143,15 +143,32 @@ Durante o uso, `.runtime/` recebe a base reconstruída, exportações, uploads t
 
 ## Pré-requisitos, instalação e configuração
 
-### Dashboard básica
+### Primeira execução
 
-O perfil verificado é **Windows e Python 3.11.9**. Confirme a versão patch: `py -3.11` seleciona a família, não garante sozinho a versão exata. Na raiz, para uma instalação nova, sem substituir ambientes existentes:
+Este roteiro prepara a dashboard básica a partir de um clone novo. Abra o PowerShell na raiz do repositório, onde estão `iniciar.py` e `requirements.txt`; não é necessário configurar o VS Code nem utilizar um ambiente de outra pasta.
+
+#### 1. Preparar o ambiente da dashboard básica
+
+O perfil verificado é **Windows e Python 3.11.9**. Confirme a versão patch: `py -3.11` seleciona a família, não garante sozinho a versão exata.
 
 ```powershell
 py -3.11 --version
-py -3.11 -m venv servicos/fase4-regressao/.venv-f402
+```
+
+Prossiga somente se a saída for `Python 3.11.9`; caso contrário, instale ou selecione essa versão antes de criar o ambiente. Crie a pasta prevista apenas se ela ainda não existir, preservando qualquer ambiente existente:
+
+```powershell
+if (-not (Test-Path -LiteralPath ".\servicos\fase4-regressao\.venv-f402")) {
+    py -3.11 -m venv servicos/fase4-regressao/.venv-f402
+}
 
 $pythonDashboard = ".\servicos\fase4-regressao\.venv-f402\Scripts\python.exe"
+& $pythonDashboard --version
+```
+
+Confirme também `Python 3.11.9` no executável do ambiente. Se a pasta existente estiver incompleta ou usar outra versão, preserve-a e configure um ambiente compatível por `FARMTECH_FASE4_PYTHON`, conforme [Como iniciar e utilizar a aplicação](#como-iniciar-e-utilizar-a-aplicação). A instalação das dependências é uma ação manual:
+
+```powershell
 & $pythonDashboard -m pip install pip==26.2.2 setuptools==84.1.0
 & $pythonDashboard -m pip install -r requirements.txt
 & $pythonDashboard -m pip check
@@ -160,6 +177,35 @@ $pythonDashboard = ".\servicos\fase4-regressao\.venv-f402\Scripts\python.exe"
 O [perfil básico](requirements.txt) reutiliza os pins F4 e suas [constraints](servicos/fase4-regressao/constraints-f402.txt). Não reúne todas as bibliotecas dos serviços. Preserve scikit-learn **1.6.1**, exigido pelos carregadores dos artefatos históricos; upgrades gerais não são uma solução validada de compatibilidade.
 
 Os manifests foram conferidos contra os ambientes existentes; os perfis básico/Oracle passaram em simulação offline de instalação. **Não foi executada instalação completa em computador limpo.** Disponibilidade de wheels e outros sistemas operacionais exigem nova verificação.
+
+#### 2. Preparar e conferir o banco de demonstração
+
+Na raiz, consulte as condições locais:
+
+```powershell
+python iniciar.py --status
+```
+
+Para utilizar o banco padrão, deixe `DB_PATH` sem configuração. Se `.runtime/demo/farmtech-demo.db` ainda não existir, prepare-o explicitamente e consulte novamente:
+
+```powershell
+if (-not (Test-Path -LiteralPath ".\.runtime\demo\farmtech-demo.db")) {
+    python iniciar.py --preparar-demo
+}
+python iniciar.py --status
+```
+
+No resultado de `fase4`, confirme `status: "ok"` e as contagens iniciais: `culturas: 22`, `sensores: 1`, `leituras_sensores: 153`, `amostras_agronomicas: 2200` e `previsoes: 0`. Essas contagens descrevem a base recém-preparada; simulações e previsões posteriores podem alterá-las. As leituras iniciais vêm do CSV preservado, sem depender de iniciar uma nova simulação.
+
+`--preparar-demo` cria somente o destino padrão e recusa qualquer arquivo já existente; não substitua nem apague uma base para repetir o roteiro. Uma `DB_PATH` explícita tem prioridade durante a execução: ela deve apontar para um banco F4 existente e compatível, pois esse comando não prepara o destino personalizado. Caminhos relativos de `DB_PATH` são resolvidos a partir de `servicos/fase4-regressao/`. Para voltar ao padrão apenas nesta sessão, use `Remove-Item Env:DB_PATH -ErrorAction SilentlyContinue` e consulte `--status` novamente.
+
+#### 3. Abrir o menu interativo
+
+```powershell
+python iniciar.py
+```
+
+Escolha **1** para iniciar, **0** para solicitar o encerramento da dashboard e **S** para sair do menu. Os detalhes de portas, ambiente em outro worktree e inicialização direta estão em [Como iniciar e utilizar a aplicação](#como-iniciar-e-utilizar-a-aplicação).
 
 ### Oracle opcional
 
@@ -201,18 +247,29 @@ Os executáveis configurados devem usar caminhos absolutos válidos na máquina 
 
 ## Como iniciar e utilizar a aplicação
 
-Na raiz:
+Após concluir a [Primeira execução](#primeira-execução), na raiz:
 
 ```powershell
-python iniciar.py --status
+python iniciar.py
+```
 
-# Somente se a base de demonstração ainda não existir
-python iniciar.py --preparar-demo
+Sem argumentos, `python iniciar.py` abre o menu interativo, procedimento principal de uso: **1 — Iniciar** inicia a dashboard, **0 — Parar** solicita seu encerramento e **S — Sair** sai do menu. O navegador é aberto no endereço informado; o controlador procura uma porta livre entre 8501 e 8510.
+
+O inicializador localiza automaticamente `.venv-f402` em `servicos/fase4-regressao/`. Se `FARMTECH_FASE4_PYTHON` estiver definida, esse executável tem prioridade. Antes de abrir o servidor, são conferidas a versão Python 3.11.9, a presença das dependências e a disponibilidade do banco com as colunas necessárias. Configurações incompatíveis impedem a inicialização e apresentam instruções de correção; não há instalação de dependências nem preparação de banco automática.
+
+Selecionar um interpretador em **Python: Select Interpreter** no VS Code não configura necessariamente a variável `FARMTECH_FASE4_PYTHON`, usada pelo inicializador para localizar o Python da dashboard. Ambientes virtuais não são compartilhados automaticamente entre worktrees Git. Quando o ambiente da Fase 4 estiver em outra pasta de trabalho, informe o caminho do executável por essa variável.
+
+No PowerShell, a partir da raiz do projeto, o exemplo abaixo utiliza o ambiente local empregado no desenvolvimento. **Esse caminho é específico dessa máquina; ajuste-o à localização do ambiente da Fase 4 no seu computador.**
+
+```powershell
+$env:FARMTECH_FASE4_PYTHON = "C:\Users\Georgia\Desktop\farmtech-envio-fase7\servicos\fase4-regressao\.venv-f402\Scripts\python.exe"
 
 python iniciar.py
 ```
 
-Sem argumentos, abre-se o menu: **1 — Iniciar**, **0 — Parar**, **S — Sair**. O navegador é aberto no endereço informado; o controlador procura uma porta livre entre 8501 e 8510. Para início direto:
+Essa definição vale somente para a sessão atual do terminal e para os processos iniciados a partir dele. Em um novo terminal, defina a variável novamente se precisar utilizar esse ambiente.
+
+Como alternativa ao menu, para início direto:
 
 ```powershell
 python iniciar.py --dashboard --port 8501
@@ -225,6 +282,8 @@ Acesse `http://127.0.0.1:8501`. Porta ocupada não é reutilizada. No modo diret
 `--preparar-demo` cria `.runtime/demo/farmtech-demo.db` a partir dos dois CSVs F4, registra procedência/hashes e **recusa destino existente**. A carga inicial contém 22 culturas, 153 leituras registradas/simuladas e 2.200 amostras acadêmicas; não cria previsões fictícias. Previsões solicitadas depois podem ser persistidas no banco selecionado.
 
 É uma base demonstrativa, não recuperação de histórico perdido. A preparação usa seu destino próprio; `DB_PATH` é respeitado na execução. A simulação inicia desativada e depende de controle explícito.
+
+O carregamento das 153 leituras iniciais e a simulação são operações separadas. Na página **Sensores IoT**, **Iniciar simulação** habilita a geração de novas leituras sintéticas apenas na base de demonstração do modo integrado, após validar o banco. Use **Parar simulação** para interrompê-la. Um `DB_PATH` apontando para outro banco permite suas consultas, mas bloqueia esse controle de simulação; a ausência da base padrão recebe instruções de preparação. A simulação acrescenta registros e não é necessária para consultar o histórico inicial.
 
 Sem rede ou credenciais, permanecem disponíveis cálculos, CSVs, modelos/fontes oficiais locais e demonstrações de alertas. A visão exige seu ambiente e checkout. Open-Meteo precisa de HTTPS; Oracle precisa de rede e autenticação. Falta de pré-condições é informada sem simular sucesso externo.
 
@@ -494,6 +553,30 @@ $pythonDashboard = ".\servicos\fase4-regressao\.venv-f402\Scripts\python.exe"
 # HTTP local; encerra a instância de validação
 & $pythonDashboard -X utf8 -B scripts/validar_dashboard_local.py
 ```
+
+Para reproduzir os testes focados de inicialização, banco e simulação, no mesmo ambiente:
+
+```powershell
+& $pythonDashboard -X utf8 -B -m unittest discover -s tests/integracao -p test_launcher.py -v
+& $pythonDashboard -X utf8 -B -m unittest discover -s tests/integracao -p test_first_run.py -v
+& $pythonDashboard -X utf8 -B -m unittest discover -s tests/integracao -p test_database_preflight.py -v
+& $pythonDashboard -X utf8 -B -m unittest discover -s tests/integracao -p test_demo_integrity.py -k reconstructed_database -k publication_never -k missing_and_invalid -k demo_command -k integrated_configuration -v
+& $pythonDashboard -X utf8 -B -m unittest discover -s servicos/fase4-regressao/tests -p test_sensor_simulation.py -v
+& $pythonDashboard -X utf8 -B -m unittest discover -s tests/integracao -p test_dashboard.py -k all_fourteen -v
+
+# Os testes históricos do scheduler usam a raiz do serviço F4.
+$pythonDashboard = (Resolve-Path $pythonDashboard).Path
+Push-Location servicos/fase4-regressao
+try {
+    & $pythonDashboard -X utf8 -B -m unittest discover -s tests -p 'test_scheduler*.py' -v
+} finally {
+    Pop-Location
+}
+```
+
+A validação local desta correção utilizou o ambiente F4 já existente, com **50 testes focados aprovados**. A preparação em banco temporário conferiu as 153 leituras contra o CSV, 22 culturas e 2.200 amostras. O menu iniciou um servidor real, que respondeu HTTP 200 em `/_stcore/health`, e a opção 0 o encerrou. No AppTest do Streamlit, as 14 telas foram renderizadas; na página Sensores IoT, o job real do scheduler acrescentou uma leitura sintética (153 → 154) e o controle de parada o encerrou. Também foram exercitados os casos de base ausente e banco personalizado, sem gravar no banco do projeto. **Isso não equivale a uma instalação ou primeira execução em máquina limpa nem a uma inspeção visual em navegador real.**
+
+Esses comandos selecionam as regressões desta correção. A verificação integral do manifesto histórico de arquivos já apresentava hashes divergentes e dois pesos YOLO ausentes; esses materiais e seus resultados não foram alterados. Portanto, não se declara aprovação de toda a suíte histórica.
 
 Os registros distinguem execuções reais, mocks e rodadas sobrepostas; seus totais não devem ser somados:
 

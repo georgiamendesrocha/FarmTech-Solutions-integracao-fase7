@@ -1,6 +1,9 @@
 """Integridade de históricos e publicação que recusa substituição."""
 
 import hashlib
+import csv
+from contextlib import closing
+from datetime import datetime, timezone
 import json
 from pathlib import Path
 import sqlite3
@@ -19,7 +22,20 @@ class DemoIntegrityTests(unittest.TestCase):
             destination = Path(directory)/"demo.db"
             result = prepare(destination)
             self.assertTrue(result.ok, result.message)
-            self.assertEqual(result.data["counts"]["leituras_sensores"], 153)
+            self.assertEqual(result.data["counts"], {
+                "culturas": 22, "sensores": 1, "leituras_sensores": 153,
+                "amostras_agronomicas": 2200, "previsoes": 0,
+            })
+            with (PROJECT_ROOT / "servicos/fase4-regressao/src/dados/historico_irrigacao.csv").open(encoding="utf-8-sig", newline="") as file:
+                readings = [row for row in csv.DictReader(file) if row["ts_iso"] != "=========== LEITURA ATUAL ==========="]
+            expected = [(
+                datetime.fromisoformat(row["ts_iso"]).replace(tzinfo=timezone.utc).isoformat(timespec="microseconds").replace("+00:00", "Z"),
+                *(float(row[key]) for key in ("umidade", "temp_c", "ldr", "ph_corr")),
+                *(int(row[key]) for key in ("N", "P", "K", "bomba_fw")),
+            ) for row in readings]
+            with closing(sqlite3.connect(destination)) as connection:
+                actual = connection.execute("SELECT ts, umidade, temp_c, ldr, ph, n, p, k, bomba_fw FROM leituras_sensores ORDER BY id").fetchall()
+            self.assertEqual(actual, expected)
             self.assertTrue(demo.inspect_database(destination).source["reconstructed"])
             before = destination.read_bytes()
             self.assertFalse(prepare(destination).ok)

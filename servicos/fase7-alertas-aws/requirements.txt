@@ -1,0 +1,2 @@
+# Monitor de alerta da Parte 2. Não instalar no ambiente da dashboard.
+boto3>=1.35.0

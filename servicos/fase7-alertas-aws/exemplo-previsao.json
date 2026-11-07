@@ -1,0 +1,23 @@
+{
+  "status": "ok",
+  "message": "Exemplo local, sem consulta à rede.",
+  "data": {
+    "location": {
+      "name": "Irecê",
+      "admin1": "Bahia",
+      "country": "Brasil"
+    },
+    "hourly": [
+      {
+        "ts_iso": "2026-11-04T13:00:00Z",
+        "umidade": 42,
+        "rain_mm": 0,
+        "temp_c": 29
+      }
+    ]
+  },
+  "source": {
+    "phase": "fase2",
+    "provider": "exemplo"
+  }
+}

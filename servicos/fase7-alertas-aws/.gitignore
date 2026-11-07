@@ -1,0 +1,6 @@
+.ultimo-alerta.json
+.ultimo-alerta.*.tmp
+.exemplo-previsao-*.json
+.exemplo-iot-*.csv
+*.pem
+*.key

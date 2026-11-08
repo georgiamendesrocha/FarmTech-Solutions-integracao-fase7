@@ -56,7 +56,7 @@ Uma entrada local, uma página inicial e treze páginas funcionais, com as anál
 
 - **Responsável:** Edemir Sufiatti.
 - **Código da implementação:** [servicos/fase7-alertas-aws/](servicos/fase7-alertas-aws/).
-- **Documentação técnica:** [servicos/fase7-alertas-aws/README.md](servicos/fase7-alertas-aws/README.md).
+- **Documentação técnica da Entrega 02, atualizada em 08/11/2026:** [servicos/fase7-alertas-aws/README.md](servicos/fase7-alertas-aws/README.md).
 
 Serviço independente com execução original em EC2/SNS documentada por capturas históricas. A evolução atual consome também o contrato dos sensores F2 e oferece prévias na dashboard, sem publicação SNS pela interface.
 

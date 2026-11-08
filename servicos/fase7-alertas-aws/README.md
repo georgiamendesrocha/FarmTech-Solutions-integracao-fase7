@@ -6,13 +6,12 @@
 
 <br>
 
-# Alertas AWS — serviço de notificação por e-mail (SNS + EC2)
+# Alertas AWS — sensores da Fase 2 → Amazon SNS → e-mail
 
-**Branch:** `feature/alertas-aws-edemir`  
-**Correções locais e adequação IoT:** `feature/alertas-aws-correcoes-validadas`
 **Módulo:** `servicos/fase7-alertas-aws/`  
 **Região AWS:** `sa-east-1` (América do Sul - São Paulo)  
-**Conta AWS:** `906011060588`
+**Conta AWS:** `906011060588`  
+**Validação documentada:** 08/11/2026 (horário de Brasília, UTC-3)
 
 ### Integrantes
 
@@ -31,452 +30,426 @@
 
 - André Godoi Chiovato
 
-O relato histórico deste README documenta o serviço original de Edemir: EC2 + SNS, previsão Open-Meteo da Fase 2 e e-mail ao funcionário. As imagens preservam essa execução original. A adequação posterior acrescenta o contrato dos sensores da Fase 2, com validação exclusivamente local e publicação simulada nos testes; não representa uma nova execução AWS.
+---
+
+## Resumo
+
+Neste README eu documento como montei e validei o serviço de alertas da Parte 2. Em 08/11/2026 executei o ciclo completo:
+
+**ESP32 simulado no Wokwi (Fase 2) → CSV do coletor serial → EC2 `farmtech-alertas` → tópico Amazon SNS → e-mail recebido no Gmail.**
+
+A leitura que publiquei veio de uma simulação real do firmware no Wokwi, não de um CSV sintético. A umidade simulada de **39,5%** ficou abaixo do limite didático de 45% e gerou o alerta `iot_umidade_baixa`. O SNS retornou o `MessageId` `0fc7e8a7-03b2-5e11-82ec-8bcde1c7af3a`, e recebi o e-mail com os dados da leitura e a ação recomendada.
+
+O que isso comprova: a integração do sensor simulado com uma mensageria AWS real e a entrega do e-mail. Não comprova medição física em campo nem recomendação agronômica.
+
+## Histórico do ambiente: V1 e V2
+
+- **V1 — criação do ambiente (05/11/2026):** criei o tópico SNS, a assinatura de e-mail, a role IAM e a EC2 `farmtech-alertas`, fiz o deploy do serviço e publiquei um primeiro alerta baseado na **previsão do tempo** (Open-Meteo, Irecê). Os prints dessa fase estão preservados em `assets/bkp/aws-notifications/` e resumidos no [Anexo — V1](#anexo--v1-criação-do-ambiente-aws-05112026).
+- **V2 — ajustes e validação com sensores (08/11/2026):** reutilizei os mesmos recursos e acrescentei a entrada de **sensores da Fase 2** (Wokwi → CSV → `--iot-csv`), com janela de cinco minutos e selo de simulação. Também restringi o SSH, que estava aberto para `0.0.0.0/0`, ao meu IP. A prova do requisito de sensores é a V2; o alerta da V1 é meteorológico e não comprova o evento IoT.
 
 ---
 
-## Objetivo e adequação acadêmica
+## Objetivo e requisito atendido
 
-A Parte 2 exige mensageria baseada em sensores das Fases 1/2 ou resultados da visão computacional da Fase 6. **Previsão meteorológica externa, isoladamente, não comprova esse requisito.** A entrada `--iot-csv` acrescenta os dados do contrato dos sensores da Fase 2; a Open-Meteo permanece como fonte complementar independente.
+A Parte 2 pede um serviço de mensageria na AWS, baseado nos sensores das Fases 1/2 ou na visão computacional da Fase 6, que avise os funcionários e sugira uma ação corretiva. Eu usei os **sensores da Fase 2**, lidos pela opção `--iot-csv`.
 
-Os entregáveis históricos documentados por Edemir foram:
+A previsão do tempo Open-Meteo (`--cidade`) continua no serviço como **fonte complementar**. Sozinha ela não comprova o requisito, por isso não a uso como evidência principal desta entrega.
 
-1. Serviço na infraestrutura da Fase 5: EC2 Linux `t3.micro`, EBS `gp3` de 8 GiB, região `sa-east-1`.
-2. Mensageria AWS (Amazon SNS) monitorando a previsão da Fase 2, exposta por `farmtech_integracao.fase2.forecast` (Open-Meteo), agora identificada como fonte complementar.
-3. E-mail ao funcionário com o alerta e a ação corretiva (SMS fora deste corte).
-
-Regras meteorológicas atuais em `regras.py` (janela de 12 h; chuva tem prioridade sobre umidade):
-
-| Condição na janela | Alerta | Ação corretiva |
-|---|---|---|
-| Alguma hora com chuva ≥ 1 mm | Chuva prevista | Manter a bomba desligada |
-| Sem essa chuva e umidade relativa do ar < 45% | Umidade baixa | Verificar a umidade do solo e as necessidades da cultura antes de decidir pelo acionamento da irrigação. |
-| Sem os dois acima e umidade relativa do ar > 80% | Umidade alta | Manter a bomba desligada |
-| Nenhum limiar cruzado | Sem aviso | Nada é publicado |
-
-Os limites de 45% e 80% são estritos: os valores iguais não disparam alerta de umidade. A chuva é horária, não a soma da janela, conforme o plano do grupo. A janela padrão considera agora inclusive até 12 horas exclusive, em UTC; entradas inválidas ou fora dela são descartadas. Não é exigida cobertura completa das 12 horas.
-
-A previsão informa umidade relativa do **ar**, não umidade do solo. Na revisão posterior, a orientação de baixa umidade do ar passou a exigir a verificação do solo e da cultura antes de decidir sobre irrigação. Os limiares, a janela e a prioridade da chuva foram preservados. O relato e as capturas históricas abaixo mantêm a ação original registrada por Edemir. O serviço envia orientação ao funcionário, sem comandar o firmware.
-
-Anti-repetição: o mesmo tipo de alerta para a mesma cidade não é republicado em menos de **6 horas** (arquivo `.ultimo-alerta.json` na pasta do serviço). Cidades e tipos intercalados mantêm histórico recente. O registro antigo, sem cidade, é aceito conservadoramente para o mesmo tipo durante as seis horas. Registro ilegível, inválido ou com data futura impede o envio até correção.
-
-Nos alertas IoT, a chave também inclui dispositivo e origem declarados. Os tipos `iot_*` não suprimem alertas meteorológicos e vice-versa.
-
----
-
-## Arquitetura breve
-
-```
-Sensores F2 → CSV do coletor → sensores.py ────────────────┐
-                                                         ▼
-Open-Meteo  →  farmtech_integracao.fase2.forecast  →  monitorar.py
-                                                         │
-                                            regras.py ───┤
-                                            mensagem.py ─┤
-                                                         ▼
-                                              publicar_sns.py  (--enviar)
-                                                         │
-                                                         ▼
-                              SNS Standard: farmtech-alertas-funcionarios
-                                                         │
-                                                         ▼
-                              E-mail Confirmado: sufiattie@gmail.com
-```
-
-- **Fonte acadêmica de sensores:** CSV do coletor Fase 2, com origem e modo explicitamente identificados.
-- **Fonte complementar:** previsão horária Open-Meteo; não recebe pH/NPK nem é convertida em leitura de sensor.
-- **Publicação:** só com `--enviar`, na EC2, com `AWS_SNS_TOPIC_ARN` definido e role IAM com `sns:Publish`.
-- **Sem `--enviar`:** o monitor só imprime o e-mail no terminal (modo seguro para desenvolvimento local).
-
-O modo local não importa o publicador SNS nem lê ou altera `.ultimo-alerta.json`. Com `--cidade`, ainda consulta HTTPS na Open-Meteo; o adaptador atual da Fase 2 também exporta a previsão em `.runtime/exports/fase2/previsao_tempo.csv`. Com `--arquivo`, a execução é offline e **não aceita `--enviar`**, mesmo que o JSON tenha sido obtido anteriormente.
-
-## Entrada de sensores da Fase 2
-
-### Contrato e proveniência
-
-O contrato foi inspecionado em `d9dabed`, sem alterar a Fase 2. O firmware emite `CSV_HDR`/`CSV_ROW` com dez campos; o coletor `servicos/fase2-iot/scripts/serial_grava_csv.py` acrescenta o horário de recepção no PC. O serviço lê esse CSV diretamente, usando apenas a biblioteca padrão Python:
+## Arquitetura
 
 ```text
-ts_iso,t_rel_ms,umidade,temp_c,ldr,ph_base,ph_corr,N,P,K,bomba_fw
+Wokwi (ESP32 + firmware F2) ──serial RFC2217──► coletor serial_grava_csv.py (Windows)
+                                                         │  CSV
+                                                         ▼  scp
+                                  EC2 farmtech-alertas (Amazon Linux 2023, python3.11)
+                                     monitorar.py ─ sensores.py ─ mensagem.py
+                                                         │  --enviar (role IAM)
+                                                         ▼
+                               SNS Standard: farmtech-alertas-funcionarios
+                                                         │
+                                                         ▼
+                                  Assinatura de e-mail confirmada (Gmail)
 ```
 
-- `ts_iso`: recepção no PC, não instante certificado da medição. O coletor original grava horário local sem offset. Nessa situação, informe o fuso da captura: `--fuso-iot=-03:00`, por exemplo. Timestamps com `Z`/offset já identificam o instante; `--fuso-iot` só supre o fuso ausente. Não se presume UTC para CSV IoT.
-- `t_rel_ms`: milissegundos desde a inicialização do firmware; reinicia com o dispositivo e não identifica uma sessão.
-- `umidade`: umidade relativa do DHT22 em %, usada como proxy didático de solo. Não é uma medição validada de umidade do solo.
-- `temp_c`: temperatura ambiente, registrada sem regra de alerta neste serviço.
-- `ldr`, `ph_base`, `ph_corr`: ADC e pH **simulado**; o pH corrigido já incorpora os ajustes didáticos NPK e não é recalculado pelo serviço.
-- `N/P/K`: indicadores 0/1 de botões, não concentrações químicas. `bomba_fw`: estado 0/1 registrado pelo firmware.
+- **Sem `--enviar`:** o monitor só imprime o assunto e o corpo (dry-run). Nada é publicado.
+- **Com `--enviar`:** publica no tópico usando a role IAM da instância, sem access key no projeto.
+- O serviço envia orientação ao funcionário. **Ele não comanda a bomba nem o firmware.**
 
-O CSV não informa cidade, dispositivo, origem física/simulador ou qualidade do sensor. `--local-iot`, `--dispositivo-iot` e `--origem-iot` são declarações do operador, não provas independentes. O firmware pode manter a última leitura DHT22 após uma falha; recepção recente não garante aquisição recente válida.
-
-Referências do contrato: `d9dabed:servicos/fase2-iot/src/prog1.ino` (cabeçalho e emissão CSV), `scripts/serial_grava_csv.py` (cabeçalho e timestamp do PC), `README.md` e `src/readme.md` da Fase 2 (regras e limites didáticos).
-
-### Regras e validade temporal
-
-Os critérios abaixo reproduzem os limites do protótipo, **sem validação agronômica**. São avaliados na leitura com maior timestamp, com esta prioridade:
-
-| Condição | Tipo de alerta | Estado esperado pela regra didática do firmware |
-|---|---|---|
-| Umidade <45% | `iot_umidade_baixa` | Bomba ligada no protótipo |
-| Umidade >80% | `iot_umidade_alta` | Bomba desligada no protótipo |
-| Umidade em [45%,80%] e pH corrigido fora de [6,0;6,8] | `iot_ph_fora_faixa` | Bomba ligada no protótipo |
-| Umidade em [45%,80%], pH na faixa e algum N/P/K=0 | `iot_npk_ausente` | Bomba ligada no protótipo |
-| Demais condições | Sem alerta | Bomba desligada no protótipo |
-
-A mensagem informa o estado registrado e o esperado, orienta conferir o protótipo e não comanda a bomba. Não recomenda fertilização real a partir dos botões. Não se inventa chuva no CSV IoT.
-
-O limite operacional de recepção recente é **cinco minutos**, inclusive; não é uma tolerância agronômica. Um registro mais antigo é recusado no modo recente. `--historico-iot` permite reproduzi-lo com o timestamp original e selo **HISTÓRICO**, sem publicação. Timestamps futuros são recusados em ambos os modos. Não se atualizam datas antigas, nem se usa o `mtime` do arquivo como data da leitura.
-
-Cabeçalho, todas as linhas, faixas numéricas e flags são validados antes da seleção. O coletor grava segundos inteiros e pode receber várias leituras nesse intervalo: no timestamp mais recente, vence a última linha na ordem de append do CSV. Não se usa o maior `t_rel_ms`, pois ele pode reiniciar. Duplicatas idênticas são aceitas; valores conflitantes para o mesmo par timestamp/`t_rel_ms` são recusados. Não reordene manualmente a captura para inferir outra sequência de recepção.
-
-Uma linha parcial durante append provoca erro, sem reutilizar um alerta antigo; repita a leitura após a gravação completar. O arquivo é somente lido, nunca convertido ou regravado.
-
-### Modos e envio
-
-| Origem/modo | Identificação | Política |
-|---|---|---|
-| `--origem-iot desconhecida` (padrão) | Origem não comprovada | Apenas dry-run |
-| `--origem-iot wokwi` | Simulação Wokwi declarada; não medição física | Registro recente, local e dispositivo explícitos são exigidos para eventual envio |
-| `--origem-iot esp32` | Captura ESP32 declarada; origem física não verificada | Mesmo requisito de recepção recente e identificação; pH/NPK continuam didáticos |
-| `--origem-iot exemplo` ou marcador sintético | Exemplo gerado, não captura Wokwi/hardware | Apenas dry-run |
-| `--historico-iot` | Reprodução histórica, qualquer origem | Apenas dry-run |
-
-`--enviar` continua obrigatório para publicar. Exemplos gerados e históricos não são enviados, mesmo que o operador declare `esp32`. A origem Wokwi admite dados de sensores simulados pelo sistema Fase 2, conforme o requisito acadêmico, e mantém **SIMULAÇÃO WOKWI** no assunto e no corpo. Não se deve declarar um CSV inventado como captura Wokwi/ESP32; o contrato original não tem assinatura ou autenticação de proveniência.
-
-Nenhuma publicação real foi realizada na adequação. Os testes de envio IoT substituem o publicador por mocks.
-
-### Exemplos locais reproduzíveis
-
-Na raiz deste worktree, gere um exemplo sintético novo e execute sem rede:
-
-```powershell
-$csv = python -B servicos/fase7-alertas-aws/gerar_exemplo_iot.py --tipo umidade_baixa
-python -B servicos/fase7-alertas-aws/monitorar.py --iot-csv "$csv"
-```
-
-Os outros cenários são `umidade_alta`, `ph_fora_faixa`, `npk_ausente` e `normal`. O gerador não altera capturas: cria um novo arquivo com `open('x')`, horário UTC de 30 segundos atrás e primeira linha `# FARMTECH_EXEMPLO_IOT_SINTETICO`. O marcador é exclusivo do exemplo do serviço, antes do cabeçalho original; o CSV bruto do coletor não precisa dele. O parser força a classificação como exemplo quando o marcador existe.
-
-Para ler uma captura Fase 2 existente, concluída ou em append, sem abrir serial nem iniciar o simulador:
-
-```powershell
-python -B servicos/fase7-alertas-aws/monitorar.py --iot-csv "C:\capturas\fase2-wokwi.csv" --origem-iot wokwi --fuso-iot=-03:00 --local-iot "Local declarado da captura" --dispositivo-iot "wokwi-esp32-a"
-```
-
-Substitua o caminho e os metadados pelos da captura. O arquivo deve ser produzido pelo coletor original da Fase 2, executado no checkout de integração; este serviço não captura serial nem instala PySerial. As instruções de captura existentes permanecem em `servicos/fase2-iot/scripts/readme.md`.
-
-Para um histórico antigo, sem atribuir local ou origem física não comprovados:
-
-```powershell
-python -B servicos/fase7-alertas-aws/monitorar.py --iot-csv "C:\capturas\historico_irrigacao.csv" --fuso-iot=-03:00 --historico-iot
-```
-
-O histórico local inspecionado possui 153 registros de 03/05/2026 e não é distribuído na árvore Git da Fase 2 em `d9dabed`. Ele serve à reprodução histórica, sem atualização de timestamps e sem evidência de medição atual. Exemplos Python comprovam o contrato e o fluxo local; não comprovam aquisição Wokwi, física ou entrega AWS.
-
-### Recursos reais que eu provisiontei
+## Recursos AWS usados
 
 | Recurso | Valor |
 |---|---|
 | Tópico SNS (Standard) | `farmtech-alertas-funcionarios` |
 | ARN | `arn:aws:sns:sa-east-1:906011060588:farmtech-alertas-funcionarios` |
-| Assinatura e-mail | `sufiattie@gmail.com` — **Confirmada** (id `13ab4969-ed3c-4a01-a233-ce79392bdc96`) |
-| EC2 | `t3.micro` · Amazon Linux 2023 · nome `farmtech-alertas` · `i-049d8140797bf7c73` · IP público `54.20.222.166` |
-| IAM role / instance profile | `farmtech-alertas` com `sns:Publish` no ARN do tópico |
+| Assinatura | E-mail no Gmail, status **Confirmada** |
+| EC2 | `farmtech-alertas` · `i-049d8140797bf7c73` · `t3.micro` · Amazon Linux 2023 |
+| IAM role | `farmtech-alertas`, associada à instância |
+| Security group | `launch-wizard-1` (`sg-09975e1b6c4e08e5a`), SSH restrito ao meu IP `/32` |
+
+Observações:
+
+- Os recursos já existiam, criados na etapa anterior do projeto. Em 08/11 eu os reutilizei.
+- O IP público da EC2 **muda** quando a instância é parada e iniciada. Nesta validação ele era `56.125.182.216`. Antes de usar os comandos, confira o IP atual no console.
+- Não revisei o conteúdo da política IAM nesta validação. A publicação bem-sucedida mostra que a role tinha permissão efetiva de `sns:Publish` no tópico. A recomendação continua sendo o menor privilégio: apenas `sns:Publish` neste ARN.
+- O registro antigo indica EBS `gp3` de 8 GiB. Não revalidei esse volume em 08/11, e a aderência aos 50 GB citados na Fase 5 não está comprovada aqui.
 
 ---
 
-## Pré-requisitos
+## Contrato dos sensores (Fase 2)
 
-| Item | Detalhe |
+O firmware emite linhas `CSV_HDR`/`CSV_ROW`. O coletor `servicos/fase2-iot/scripts/serial_grava_csv.py` grava o CSV e acrescenta o horário de recepção no PC:
+
+```text
+ts_iso,t_rel_ms,umidade,temp_c,ldr,ph_base,ph_corr,N,P,K,bomba_fw
+```
+
+| Campo | Significado |
 |---|---|
-| Conta / lab AWS | AWS Academy Learner Lab (ou conta com permissão SNS + EC2 + IAM) |
-| Região | **sempre** `sa-east-1` — o código recusa ARN fora de São Paulo |
-| Python local | 3.11+ recomendado (o 3.11.9 da Fase 4 atende) |
-| Python na EC2 | **python3.11** (o `python3` padrão do Amazon Linux 2023 é antigo e quebra em anotações `str \| None` do pacote de integração) |
-| Dependência de envio | `boto3>=1.35.0` (`requirements.txt` deste módulo) |
-| Acesso HTTPS | Open-Meteo, para `--cidade` |
-| Chave SSH | `.pem` da key pair `farmtech-alertas` (nunca commitada) |
+| `ts_iso` | Horário de recepção no PC, **local e sem offset**; por isso informo `--fuso-iot=-03:00` |
+| `t_rel_ms` | Milissegundos desde o boot do firmware; reinicia com o dispositivo |
+| `umidade` | Umidade do DHT22 em %, usada como proxy didático de umidade do solo |
+| `temp_c` | Temperatura; registrada, sem regra de alerta |
+| `ldr`, `ph_base`, `ph_corr` | ADC do LDR e pH **simulado**; o pH corrigido já inclui os ajustes NPK |
+| `N`, `P`, `K` | Botões 0/1, não concentrações químicas |
+| `bomba_fw` | Estado da bomba (0/1) registrado pelo firmware |
 
-Arquivo de exemplo de ambiente (não versionar segredos):
+O CSV não informa local, dispositivo ou origem. Por isso declaro esses dados com `--local-iot`, `--dispositivo-iot` e `--origem-iot`. São declarações do operador, não provas independentes.
 
-```text
-AWS_DEFAULT_REGION=sa-east-1
-AWS_SNS_TOPIC_ARN=arn:aws:sns:sa-east-1:906011060588:farmtech-alertas-funcionarios
-```
+### Regras didáticas (prioridade de cima para baixo)
 
-O código lê variáveis do processo; `.env.example` não é carregado automaticamente. O ARN deve identificar tópico SNS Standard em `sa-east-1`, e `AWS_DEFAULT_REGION` deve corresponder à região do ARN. Instale somente o requirements deste serviço no ambiente destinado ao envio. O requirements da raiz é um inventário com ambientes incompatíveis entre si, não uma instalação conjunta.
+| Condição na leitura mais recente | Alerta | Estado esperado no protótipo |
+|---|---|---|
+| Umidade < 45% | `iot_umidade_baixa` | Bomba ligada |
+| Umidade > 80% | `iot_umidade_alta` | Bomba desligada |
+| Umidade em [45, 80] e pH corrigido fora de [6,0; 6,8] | `iot_ph_fora_faixa` | Bomba ligada |
+| Umidade em [45, 80], pH na faixa e algum N/P/K = 0 | `iot_npk_ausente` | Bomba ligada |
+| Demais casos | Sem alerta | Bomba desligada |
+
+Os limites reproduzem o protótipo da Fase 2 e **não têm validação agronômica**. Quando várias condições coexistem, o assunto usa a de maior prioridade e o corpo cita as demais.
+
+### Proteções do serviço
+
+- **Janela de cinco minutos:** só publico uma leitura recebida há no máximo 300 s. Uma leitura mais antiga é recusada; nesse caso eu faço nova captura. **Nunca altero timestamps** nem uso a data de modificação do arquivo.
+- **Somente dry-run:** exemplos sintéticos (`--origem-iot exemplo` ou arquivo com marcador sintético), origem `desconhecida`, `--historico-iot` e `--arquivo` (previsão offline) não publicam.
+- **Origem Wokwi:** exige local e dispositivo declarados e marca **SIMULAÇÃO WOKWI** no assunto e no corpo.
+- **Anti-repetição de 6 horas:** o mesmo tipo de alerta, para a mesma chave (local, dispositivo e origem), não é republicado em menos de 6 h. O controle fica em `.ultimo-alerta.json`, na pasta do serviço na EC2.
+- **SNS publicou, registro falhou:** o monitor mostra o `MessageId` e termina com erro. **Não reenvio**; primeiro reconcilio o registro. Esse controle local não garante entrega exatamente uma vez, e o `MessageId` comprova a aceitação pelo SNS, não a entrega do e-mail.
+- **Ambiente:** o código lê `AWS_DEFAULT_REGION` e `AWS_SNS_TOPIC_ARN` da sessão; o ARN precisa ser de um tópico Standard em `sa-east-1`. Ao reconectar por SSH, exporto as variáveis de novo.
 
 ---
 
-## Passo a passo — o que eu fiz na AWS
+## Passo a passo da validação de 08/11/2026
 
-Todas as imagens estão em `../../assets/aws-notifications/` (relativo a este README).
+Nos comandos, marquei onde cada um deve ser executado:
 
-### 1. Selecionei a região `sa-east-1`
+- **Windows PowerShell** — meu computador, na raiz do projeto ou em `servicos\fase2-iot`.
+- **EC2 Bash** — sessão SSH, com prompt `[ec2-user@...]`.
 
-Antes de criar qualquer recurso, confirmei no console a região **South America (São Paulo)**. Recurso criado em N. Virginia não serve para esta entrega.
+### 1. Conferi o tópico SNS e a assinatura
 
-![Selecionando região sa-east-1](../../assets/aws-notifications/selecionando%20regi%C3%A3o-sa-east-1%20.jpg)
+No console SNS, em `sa-east-1`, confirmei o tópico Standard `farmtech-alertas-funcionarios` e a assinatura de e-mail com status **Confirmada**.
 
-### 2. Abri o Amazon SNS e criei o tópico Standard
+![Tópico SNS com assinatura de e-mail confirmada](../../assets/aws-notifications/01-sns-topico-assinatura-confirmada.png)
 
-Busquei **Simple Notification Service**, abri **Topics → Create topic**, tipo **Standard**, nome `farmtech-alertas-funcionarios`.
+### 2. Conferi a EC2 e a role IAM
 
-![Abrindo SNS](../../assets/aws-notifications/Abrindo%20SNS.jpg)
+A instância `farmtech-alertas` estava parada. Antes de iniciá-la, conferi nos detalhes a role IAM `farmtech-alertas` associada.
 
-![Criando tópico](../../assets/aws-notifications/Criando%20topico.jpg)
+![Detalhes da EC2 com a função IAM associada](../../assets/aws-notifications/03-ec2-detalhes-funcao-iam.png)
 
-![Definições do tópico SNS](../../assets/aws-notifications/Defini%C3%A7%C3%B5es%20do%20topico%20SNS.jpg)
+### 3. Restringi o SSH ao meu IP
 
-Copiei o ARN:
+A regra de entrada SSH do `launch-wizard-1` estava aberta para `0.0.0.0/0`. Troquei a origem para o meu IP `/32` e confirmei a regra na tabela.
 
-```text
-arn:aws:sns:sa-east-1:906011060588:farmtech-alertas-funcionarios
-```
+![Regra SSH restrita ao meu IP](../../assets/aws-notifications/04-ssh-restrito-ip-confirmado.png)
 
-### 3. Criei a assinatura por e-mail e confirmei na caixa de entrada
+### 4. Iniciei a instância
 
-Protocolo **Email**, endpoint `sufiattie@gmail.com`. O status começa em *Pending confirmation*; abri o e-mail de `no-reply@sns.amazonaws.com` e cliquei em **Confirm subscription**. Depois a assinatura ficou **Confirmed** (id `13ab4969-ed3c-4a01-a233-ce79392bdc96`).
+Iniciei a EC2 e aguardei as verificações de status chegarem a **3/3 aprovadas**.
 
-![Criação da assinatura e-mail](../../assets/aws-notifications/cria%C3%A7%C3%A3o-assinatura-e-mail.jpg)
+![EC2 em execução com 3/3 verificações aprovadas](../../assets/aws-notifications/06-ec2-verificacoes-aprovadas.png)
 
-![Assinatura criada (pending)](../../assets/aws-notifications/Assinatura-criada.jpg)
+### 5. Conectei por SSH
 
-![Confirmar assinatura na caixa de entrada](../../assets/aws-notifications/confirmar-assinatura-caixa-entrada.jpg)
-
-![Assinatura confirmada](../../assets/aws-notifications/assinatura-confirmada.jpg)
-
-### 4. Testei a mensageria pelo portal (sem o código Python)
-
-Publiquei uma mensagem de teste pelo console (**Publish message**) para provar o caminho SNS → e-mail antes de subir a EC2.
-
-![Publicar mensagem de teste](../../assets/aws-notifications/publicar-mensagem.jpg)
-
-![Teste de alerta recebido](../../assets/aws-notifications/teste-de-alerta.jpg)
-
-### 5. Criei a EC2 `farmtech-alertas` (padrão Fase 5)
-
-- AMI: **Amazon Linux 2023**
-- Tipo: **t3.micro**
-- Nome: `farmtech-alertas`
-- Key pair nova: `farmtech-alertas` (RSA, `.pem` baixado; fora do Git)
-- Disco: **8 GiB gp3** (mantive o padrão da AMI nesta montagem; o enunciado da Fase 5 cita 50 GiB, mas para o monitor leve 8 GiB bastou)
-- Security group: SSH apenas do meu IP
-
-![Criando instância EC2](../../assets/aws-notifications/criando%20instancia%20ec2-1.jpg)
-
-![Criando par de chaves](../../assets/aws-notifications/criando-par-de-chaves.jpg)
-
-![Chave gerada](../../assets/aws-notifications/chave-gerada.jpg)
-
-![Definições de disco gp3](../../assets/aws-notifications/defini%C3%A7%C3%B5es-de-disco.jpg)
-
-![Instância EC2 criada](../../assets/aws-notifications/inst%C3%A2nica%20ec2-criada.jpg)
-
-![Instância em execução](../../assets/aws-notifications/inst%C3%A2ncia%20em%20execu%C3%A7%C3%A3o.jpg)
-
-Instance id: `i-049d8140797bf7c73`.
-
-### 6. Criei a role IAM e anexei à instância
-
-No IAM criei o perfil/função `farmtech-alertas` com permissão mínima `sns:Publish` no ARN do tópico. Depois alterei a função IAM da EC2 para usar esse instance profile (sem gravar access key no projeto).
-
-![Painel IAM](../../assets/aws-notifications/painel%20IAM.jpg)
-
-![IAM — criar perfil](../../assets/aws-notifications/IAM-Criar%20perfil.jpg)
-
-![Adicionando permissões](../../assets/aws-notifications/adicionand-permiss%C3%B5es.jpg)
-
-![Função farmtech-alertas](../../assets/aws-notifications/fun%C3%A7%C3%A3o-farmtech-alertas.jpg)
-
-![Alterar função IAM da EC2](../../assets/aws-notifications/alterar%20fun%C3%A7%C3%A3o%20IAM.jpg)
-
-![Alterar função IAM — confirmação](../../assets/aws-notifications/alterar%20fun%C3%A7%C3%A3o%20IAM-2.jpg)
-
-### 7. Conectei por SSH, instalei dependências e enviei o código
-
-Entre na instância com a `.pem`:
+**Windows PowerShell** (raiz do projeto):
 
 ```powershell
-ssh -i .\farmtech-alertas.pem ec2-user@IP_PUBLICO
+ssh -i .\farmtech-alertas.pem ec2-user@IP_PUBLICO_ATUAL
 ```
 
-Na EC2 usei **Python 3.11** (o `python3` default quebra nas anotações `str | None` do pacote de integração). Instalei o `boto3` e fiz um deploy mínimo (código Python + pacote `farmtech_integracao` + script de previsão da F2 — **sem** `.md` auxiliares).
+A chave `.pem` nunca vai para o Git nem é compartilhada. O ideal é mantê-la fora da pasta do projeto.
 
-![Conectado via SSH — instalando dependências](../../assets/aws-notifications/conectado-ssh-instal-deps.jpg)
+![Conexão SSH na EC2](../../assets/aws-notifications/08-ec2-conexao-ssh-confirmada.png)
 
-![Dependências instaladas](../../assets/aws-notifications/dependencias%20instaladas.jpg)
+### 6. Conferi a pasta do projeto e o Python
 
-![Enviando códigos para a instância](../../assets/aws-notifications/enviando-codigos-instancia.jpg)
+**EC2 Bash:**
 
-### 8. Rodei dry-run e depois `--enviar` na EC2
+```bash
+cd /home/ec2-user/FarmTech-Solutions-integracao-fase7
+python3.11 --version
+```
 
-Exportei a região e o ARN, conferi o texto do e-mail sem publicar e, em seguida, publiquei de verdade:
+Confirmei o Python **3.11.18**. Uso `python3.11` porque o `python3` padrão do Amazon Linux 2023 não atende ao pacote de integração.
+
+Antes do deploy, fiz backup da pasta (o `cp -a` preservou o `.ultimo-alerta.json`):
+
+```bash
+cp -a /home/ec2-user/FarmTech-Solutions-integracao-fase7 /home/ec2-user/farmtech-backup-$(date +%Y%m%d-%H%M%S)
+```
+
+![Pasta do projeto e Python 3.11 na EC2](../../assets/aws-notifications/09-ec2-pasta-python-confirmados.png)
+
+### 7. Enviei os módulos do serviço
+
+**Windows PowerShell** (raiz do projeto) — copiei somente os seis arquivos do serviço:
+
+```powershell
+scp -i .\farmtech-alertas.pem `
+  .\servicos\fase7-alertas-aws\monitorar.py `
+  .\servicos\fase7-alertas-aws\sensores.py `
+  .\servicos\fase7-alertas-aws\mensagem.py `
+  .\servicos\fase7-alertas-aws\regras.py `
+  .\servicos\fase7-alertas-aws\publicar_sns.py `
+  .\servicos\fase7-alertas-aws\requirements.txt `
+  ec2-user@IP_PUBLICO_ATUAL:/home/ec2-user/FarmTech-Solutions-integracao-fase7/servicos/fase7-alertas-aws/
+```
+
+Os seis chegaram com 100%. O pacote `farmtech_integracao` que já estava na EC2 foi reutilizado; não o substituí neste deploy.
+
+![Transferência dos módulos para a EC2](../../assets/aws-notifications/10-transferencia-modulos-iot-ec2.png)
+
+### 8. Conferi as dependências e a CLI
+
+**EC2 Bash:**
+
+```bash
+python3.11 -m pip install --user -r servicos/fase7-alertas-aws/requirements.txt
+python3.11 servicos/fase7-alertas-aws/monitorar.py --help
+```
+
+O `boto3` 1.43.124 já estava instalado, e o `--help` mostrou as opções IoT (`--iot-csv`, `--origem-iot`, `--fuso-iot`, `--local-iot`, `--dispositivo-iot`).
+
+![Dependências confirmadas](../../assets/aws-notifications/11-ec2-dependencias-confirmadas.png)
+
+![CLI com as opções IoT](../../assets/aws-notifications/12-ec2-cli-iot-confirmada.png)
+
+### 9. Configurei região e tópico na sessão
+
+**EC2 Bash** (repita sempre que abrir uma nova sessão SSH):
 
 ```bash
 export AWS_DEFAULT_REGION=sa-east-1
 export AWS_SNS_TOPIC_ARN=arn:aws:sns:sa-east-1:906011060588:farmtech-alertas-funcionarios
-
-cd /home/ec2-user/farmtech
-python3.11 servicos/fase7-alertas-aws/monitorar.py --cidade "Irecê"
-python3.11 servicos/fase7-alertas-aws/monitorar.py --cidade "Irecê" --enviar
+printf 'Região: %s\nTópico: %s\n' "$AWS_DEFAULT_REGION" "$AWS_SNS_TOPIC_ARN"
 ```
 
-![Dry-run e --enviar com MessageId](../../assets/aws-notifications/enviar.jpg)
+![Região e tópico configurados](../../assets/aws-notifications/13-ec2-regiao-topico-configurados.png)
 
-![Enviando mensagem de alerta 05/11/2026 11:51](../../assets/aws-notifications/enviando%20mensagem%20de%20alerta%2005%2011%202026%201151.jpg)
+### 10. Compilei o firmware e iniciei o Wokwi
+
+No VS Code, abri `servicos/fase2-iot` e compilei com o PlatformIO (`pio run -e esp32`, resultado **SUCCESS**). Depois executei **Wokwi: Start Simulator**, e o monitor serial mostrou as linhas `CSV_ROW`.
+
+![Firmware ESP32 compilado](../../assets/aws-notifications/14-firmware-esp32-compilado.png)
+
+![Simulação Wokwi emitindo leituras](../../assets/aws-notifications/15-wokwi-simulacao-leituras-sensores.png)
+
+### 11. Capturei as leituras em CSV
+
+**Windows PowerShell** (pasta `servicos\fase2-iot`, com o Wokwi rodando; PySerial 3.5 instalado):
+
+```powershell
+cd C:\Users\edemi\FarmTech-Solutions-integracao-fase7\servicos\fase2-iot
+$csv = "dados/captura-alerta-aws-$(Get-Date -Format yyyyMMdd-HHmmss).csv"
+python scripts/serial_grava_csv.py --port rfc2217://127.0.0.1:4000 --baud 115200 --out "$csv"
+```
+
+Cada captura gera um arquivo novo; não uso `--fresh` nem altero capturas anteriores.
+
+![Coletor serial iniciado](../../assets/aws-notifications/16-coletor-serial-wokwi-iniciado.png)
+
+Em outro PowerShell, conferi se o arquivo já tinha leituras, não só o cabeçalho:
+
+```powershell
+Get-Date -Format o
+Get-Content "C:\Users\edemi\FarmTech-Solutions-integracao-fase7\servicos\fase2-iot\dados\<arquivo>.csv" -Tail 5
+```
+
+O Wokwi rodou abaixo da velocidade real (cerca de 36%), então o intervalo entre leituras pode passar de 30 segundos no relógio. Se aparecer só o cabeçalho, basta aguardar ou reiniciar a simulação; isso não indica falha do sensor.
+
+![CSV com leituras (primeira captura, de preparação)](../../assets/aws-notifications/17-csv-leituras-capturadas-wokwi.png)
+
+### 12. Transferi a captura e fiz o dry-run
+
+Encerrei o coletor com **Ctrl+C** (o simulador pode continuar) e transferi o CSV.
+
+**Windows PowerShell** (raiz do projeto):
+
+```powershell
+scp -i .\farmtech-alertas.pem .\servicos\fase2-iot\dados\<arquivo>.csv ec2-user@IP_PUBLICO_ATUAL:/home/ec2-user/FarmTech-Solutions-integracao-fase7/captura-iot.csv
+```
+
+**EC2 Bash** — dry-run, sem enviar:
+
+```bash
+python3.11 servicos/fase7-alertas-aws/monitorar.py --iot-csv captura-iot.csv --origem-iot wokwi --fuso-iot=-03:00 --local-iot "Bancada didatica FarmTech" --dispositivo-iot "wokwi-esp32-a"
+```
+
+![Transferência da captura para a EC2 (primeira captura)](../../assets/aws-notifications/18-transferencia-captura-iot-ec2.png)
+
+![Dry-run na EC2 (primeira captura: leitura das 17:37:52, 270 s)](../../assets/aws-notifications/19-ec2-dry-run-alerta-iot.png)
+
+As imagens 17 a 19 são da **primeira captura** (`captura-alerta-aws-20261108-173603.csv`). O dry-run identificou a simulação Wokwi e a umidade de 39,5%, mas a leitura já tinha 270 s, perto do limite de 300 s. Por isso não publiquei com ela.
+
+### 13. Renovei a captura e publiquei
+
+Repeti os passos 11 e 12 com uma **segunda captura**, `captura-alerta-aws-20261108-174228.csv`. A última leitura foi recebida às **17:45:03 (Brasília)** = 20:45:03 UTC. O dry-run dessa captura passou com 187 s de idade, e em seguida executei o envio **uma única vez**.
+
+**EC2 Bash:**
+
+```bash
+python3.11 servicos/fase7-alertas-aws/monitorar.py --iot-csv captura-iot.csv --origem-iot wokwi --fuso-iot=-03:00 --local-iot "Bancada didatica FarmTech" --dispositivo-iot "wokwi-esp32-a" --enviar
+```
+
+| Campo | Valor da leitura publicada |
+|---|---|
+| Recepção (`ts_iso`) | 08/11/2026 17:45:03 (Brasília) |
+| Idade na publicação | 230 s (dentro dos 300 s) |
+| `t_rel_ms` | 150005 |
+| Umidade | **39,5%** (< 45%) |
+| Temperatura | 24 °C |
+| LDR | 1001 |
+| pH base / corrigido | 10,578 / 9,878 (simulado) |
+| N / P / K | 0 / 0 / 0 |
+| `bomba_fw` | 1 |
+| Origem / local / dispositivo | `wokwi` / Bancada didatica FarmTech / `wokwi-esp32-a` |
+| Alerta principal | Umidade baixa (pH fora da faixa e NPK ausente coexistem) |
+| **MessageId SNS** | `0fc7e8a7-03b2-5e11-82ec-8bcde1c7af3a` |
+
+![Publicação no SNS com MessageId](../../assets/aws-notifications/20-iot-publicado-sns-messageid.png)
+
+### 14. Recebi o e-mail
+
+Às **17:48 (Brasília)** o alerta chegou ao Gmail:
+
+- **Remetente:** Farmtech-Alertas Funcionários `<no-reply@sns.amazonaws.com>`
+- **Assunto:** `FarmTech [SIMULAÇÃO WOKWI]: Umidade do DHT22/protótipo abaixo de 45% para o tomate`
+
+![E-mail do alerta IoT recebido](../../assets/aws-notifications/21-email-alerta-iot-recebido.png)
+
+O corpo repete os dados da leitura e traz a ação corretiva:
+
+> Conferir no protótipo a irrigação prevista pela regra de umidade baixa. Não acionar bomba física com base neste alerta.
+
+![Ação recomendada no corpo do e-mail (sem link de cancelamento)](../../assets/aws-notifications/22-email-acao-recomendada-sem-link.png)
 
 ---
 
-## Como rodar localmente
+## Como reproduzir
 
-Na **raiz do repositório**, com Python 3.11+ (sem precisar de AWS):
+1. **EC2 Bash:** conectar, entrar em `/home/ec2-user/FarmTech-Solutions-integracao-fase7` e exportar as variáveis (passo 9).
+2. **Windows:** iniciar o Wokwi e o coletor com um nome de arquivo novo (passos 10 e 11).
+3. **Windows PowerShell:** confirmar que o CSV tem dados, encerrar o coletor com Ctrl+C e fazer o `scp`.
+4. **EC2 Bash:** rodar o dry-run e, se a leitura estiver dentro dos 5 minutos, rodar o `--enviar` uma vez.
+5. Se a leitura expirar, fazer uma captura nova. Nunca editar timestamps.
+
+### Testes e exemplos locais (sem AWS)
+
+Na raiz do repositório, com Python 3.11+:
 
 ```powershell
-# Testes do serviço: meteorologia, sensores, mensagens, registros e SNS simulado
+# Testes do serviço (SNS simulado com mocks; não acessam a AWS)
 python -B -m unittest discover -s servicos/fase7-alertas-aws -p "test_*.py" -v
 
-# Exemplo sintético com horário atual: o gerador imprime somente o caminho criado
-$exemplo = python servicos/fase7-alertas-aws/gerar_exemplo.py --tipo chuva
-python servicos/fase7-alertas-aws/monitorar.py --arquivo "$exemplo"
+# Exemplo IoT sintético, somente dry-run
+$csv = python -B servicos/fase7-alertas-aws/gerar_exemplo_iot.py --tipo umidade_baixa
+python -B servicos/fase7-alertas-aws/monitorar.py --iot-csv "$csv"
 
-# Exemplo histórico preservado: normalmente já está fora da janela temporal
-python servicos/fase7-alertas-aws/monitorar.py --arquivo servicos/fase7-alertas-aws/exemplo-previsao.json
+# Reprodução de captura antiga, somente dry-run
+python -B servicos/fase7-alertas-aws/monitorar.py --iot-csv "C:\capturas\historico.csv" --fuso-iot=-03:00 --historico-iot
+```
 
-# Dry-run consultando a Open-Meteo via Fase 2
+Os outros cenários IoT são `umidade_alta`, `ph_fora_faixa`, `npk_ausente` e `normal`. Esses comandos ficam documentados para uso local; não fazem parte da validação de 08/11.
+
+### Previsão do tempo (complementar)
+
+```powershell
 python servicos/fase7-alertas-aws/monitorar.py --cidade "Irecê"
 ```
 
-Sem `--enviar` o comando **só imprime** o assunto e o corpo. Não publica nada.
-
-`--enviar` eu reservei para a EC2 em São Paulo, com `AWS_SNS_TOPIC_ARN` e a role IAM.
-
-O gerador também aceita `--tipo umidade_baixa`, `umidade_alta` ou `normal`, e `--saida CAMINHO`. Os JSONs são marcados como sintéticos, usam UTC uma hora à frente e são exclusivos para dry-run. Arquivos existentes nunca são sobrescritos. O exemplo original de 04/11/2026 permanece como evidência histórica; não foi atualizado artificialmente.
-
-Os testes SNS substituem o SDK e o cliente por mocks: não acessam a AWS e não exigem credenciais ou boto3 instalado. Isso valida o comportamento local, sem comprovar permissões IAM, conectividade ou entrega de e-mail.
-
-A suíte completa inclui a leitura de `d9dabed:farmtech_integracao/fase2.py` com `git show`: execute-a em um checkout local com Git e esse objeto disponíveis. Uma cópia mínima de arquivos para a EC2, sem histórico Git, não atende a esse teste de comparação entre versões.
+Consulta a Open-Meteo pela Fase 2 e avalia uma janela de 12 h: chuva ≥ 1 mm em alguma hora tem prioridade; depois, umidade do ar < 45% ou > 80%. Ela mede umidade do **ar**, não do solo, e serve só como apoio. Com `--arquivo` (JSON offline) o envio é bloqueado.
 
 ---
 
-## Como rodar na EC2
-
-1. SSH com a key pair `farmtech-alertas`.
-2. Garantir `python3.11` e `boto3` (`pip install --user -r servicos/fase7-alertas-aws/requirements.txt`).
-3. Exportar `AWS_DEFAULT_REGION` e `AWS_SNS_TOPIC_ARN`.
-4. Executar a partir de `/home/ec2-user/farmtech` (raiz do projeto na instância), para o `sys.path` achar `farmtech_integracao`.
-
-```bash
-python3.11 servicos/fase7-alertas-aws/monitorar.py --cidade "Irecê"          # dry-run
-python3.11 servicos/fase7-alertas-aws/monitorar.py --cidade "Irecê" --enviar # publica SNS
-```
-
-Se o SNS confirmar a mensagem e a gravação local falhar, o monitor informa o `MessageId` e termina com erro, sem reenviar automaticamente. Interrompa o agendamento e reconcilie esse identificador no registro antes de uma nova execução. O controle local não constitui garantia de entrega exatamente uma vez em execuções concorrentes ou falhas distribuídas.
-
----
-
-## Evidências de funcionamento
-
-Cenário real capturado em **05/11/2026**:
-
-| Campo | Valor observado |
-|---|---|
-| Local | Irecê, BA |
-| Umidade prevista | **34%** (< 45%) |
-| Ação | **Ligar irrigação** |
-| MessageId SNS | `9d74b71f-640f-56a0-8997-d479e8a93429` |
-| Remetente do e-mail | Farmtech - Alertas / `no-reply@sns.amazonaws.com` |
-
-![Terminal com --enviar e MessageId](../../assets/aws-notifications/enviar.jpg)
-
-![Envio do alerta na EC2](../../assets/aws-notifications/enviando%20mensagem%20de%20alerta%2005%2011%202026%201151.jpg)
-
-![Recebimento da mensagem na caixa](../../assets/aws-notifications/recebimento%20da%20mensagem.jpg)
-
-![Mensagem recebida (corpo do alerta)](../../assets/aws-notifications/mensgem-recebida.jpg)
-
-Com isso eu fechei o ciclo: previsão da Fase 2 → regra do tomate → publicação SNS → e-mail confirmado na caixa do funcionário.
-
----
-
-## Estrutura de pastas / módulos
+## Estrutura do módulo
 
 ```text
 servicos/fase7-alertas-aws/
-├── README.md                 ← este arquivo
-├── monitorar.py              ← CLI: --cidade / --arquivo / --horas / --enviar
-├── regras.py                 ← limiares do tomate (chuva / umidade / janela 12 h)
-├── mensagem.py               ← assunto e corpo do e-mail
-├── publicar_sns.py           ← boto3 publish (só com --enviar)
-├── test_regras.py            ← testes unitários das regras
-├── test_monitorar.py         ← contrato F2, dry-run e controle de repetição
-├── test_publicar_sns.py      ← publicação SNS com SDK simulado
-├── test_gerar_exemplo.py     ← exemplos atuais e proteção contra sobrescrita
-├── gerar_exemplo.py          ← cria JSON sintético atual, exclusivo para dry-run
-├── sensores.py              ← contrato CSV IoT, validade e regras didáticas
-├── gerar_exemplo_iot.py      ← cria CSV sintético marcado, exclusivo para dry-run
-├── test_sensores.py          ← contrato, tempo, regras e desempate de recepção
-├── test_fluxo_iot.py         ← mensagens, guardas, repetição e SNS IoT simulado
-├── test_condicoes_mensagens.py ← condições simultâneas e parágrafos da mensagem
-├── test_gerar_exemplo_iot.py ← exemplos IoT e proteção contra sobrescrita
-├── exemplo-previsao.json     ← JSON de Result ok da Fase 2 para dry-run offline
-├── requirements.txt          ← boto3>=1.35.0
-├── .env.example              ← modelo de AWS_DEFAULT_REGION / AWS_SNS_TOPIC_ARN
-└── .gitignore
-
-assets/aws-notifications/     ← prints das evidências (referenciados acima)
-farmtech_integracao/fase2.py  ← forecast → Open-Meteo (reutilizado, não alterado pelo serviço)
+├── README.md                ← este arquivo
+├── monitorar.py             ← CLI: --iot-csv / --cidade / --arquivo / --enviar
+├── sensores.py              ← contrato CSV IoT, janela de 5 min e regras didáticas
+├── regras.py                ← regras da previsão (chuva / umidade / 12 h)
+├── mensagem.py              ← assunto e corpo do e-mail
+├── publicar_sns.py          ← publish no SNS (só com --enviar)
+├── gerar_exemplo.py         ← JSON sintético de previsão (dry-run)
+├── gerar_exemplo_iot.py     ← CSV sintético marcado (dry-run)
+├── test_*.py                ← testes locais
+├── exemplo-previsao.json    ← exemplo offline de previsão
+├── requirements.txt         ← boto3>=1.35.0
+└── .env.example             ← modelo de região e ARN
 ```
 
-Módulos Python (resumo):
-
-| Arquivo | Responsabilidade |
-|---|---|
-| `monitorar.py` | Orquestra previsão ou sensores, anti-repeat 6 h e publicação opcional |
-| `regras.py` | `avaliar(hourly)` — chuva ≥ 1 mm / umidade < 45% / > 80% / janela 12 h |
-| `sensores.py` | CSV IoT original, fuso, recepção recente/replay, critérios didáticos e condições coexistentes |
-| `mensagem.py` | Monta assunto e corpo; IoT recebe selos de origem e histórico |
-| `publicar_sns.py` | `boto3.client("sns").publish(...)`; exige ARN em `sa-east-1` |
-
-Não alterei a dashboard da Fase 4. Este serviço é independente e vive nesta pasta.
-
-## Revisão local posterior às evidências históricas
-
-As capturas de 05/11/2026 e o relato de Edemir foram preservados. A revisão do código e os testes locais posteriores não representam nova execução ou validação da AWS.
-
-- A captura `definições-de-disco.jpg` mostra SSH com origem `0.0.0.0/0`, divergindo da descrição histórica “apenas do meu IP”. O estado atual do security group não foi consultado: deve ser confirmado pelo responsável antes de qualquer operação na infraestrutura.
-- A evidência registra EBS de 8 GiB; o plano do grupo cita 50 GB. A conformidade dessa decisão depende da confirmação do enunciado/ambiente, sem alteração de recurso nesta revisão.
-- Não foram identificadas access keys, senhas ou conteúdo de chave privada nas configurações e capturas examinadas. Dois prints de e-mail (`mensgem-recebida.jpg` e `teste-de-alerta.jpg`) incluem links operacionais de cancelamento de assinatura. Preserve os originais; para distribuição mais ampla, prepare cópias sanitizadas. Nenhum link foi acessado.
-- A compatibilidade com `d9dabed:farmtech_integracao/fase2.py` é coberta por teste do código real carregado em memória, com worker e exportação simulados. O serviço consome `location` e `hourly`; os novos metadados e CSV da integração não mudam esse consumo. Ao integrar, reutilize o pacote `farmtech_integracao` atual sem substituir sua versão pela desta branch histórica.
+As evidências ficam em `assets/aws-notifications/`. As capturas da V1 (05/11/2026) ficam em `assets/bkp/aws-notifications/`: documentam a criação do ambiente, mas não provam o evento IoT de 08/11.
 
 ---
 
-## Prévia local na dashboard — integração posterior
+## Custos e limpeza
 
-A página **Alertas — Fase 7** reutiliza as funções deste serviço por um worker local. Ela avalia CSV IoT, os cinco cenários sintéticos de sensores e previsões já consultadas. A consulta Open-Meteo só ocorre ao solicitar explicitamente uma nova previsão. Nenhuma ação dessa página publica no SNS, solicita credenciais AWS ou altera `.ultimo-alerta.json`.
+- **A EC2 continua em execução** após a validação, e o desligamento está **pendente**. Enquanto estiver *running*, ela gera custo de instância e EBS.
+- **Stop** interrompe a cobrança da instância, mas o volume EBS continua sendo cobrado e o IP público muda.
+- **Terminate** remove a instância. Antes, confiro se o volume está com *Delete on termination* e se não sobram volumes ou snapshots.
+- O tópico SNS e a assinatura podem ser removidos após a correção.
+- A chave `.pem` fica fora do Git; mantenha-a fora do checkout.
 
-Cada avaliação depende de uma ação explícita. Ao trocar a fonte ou os seletores, a prévia anterior é ocultada até uma nova avaliação. A interface mostra todas as condições IoT coexistentes de umidade, pH simulado e indicadores N/P/K, identificando a condição principal. Essa apresentação mantém a prioridade do alerta, as regras do protótipo e o controle de repetição do serviço independente.
+---
 
-Os horários meteorológicos têm significados distintos:
+## Conclusão
 
-- **Consulta da previsão:** valor original e válido de `source.retrieved_at`, quando disponível.
-- **Avaliação local:** momento em que as regras foram executadas na dashboard.
-- **Evento previsto:** horário do alerta selecionado; sem alerta, esse horário permanece ausente.
+Demonstrei o ciclo completo com dados do sistema de sensores da Fase 2: o firmware simulado no Wokwi gerou a leitura, o coletor gravou o CSV, o serviço na EC2 aplicou a regra de umidade baixa dentro da janela de cinco minutos, o Amazon SNS publicou a mensagem e o e-mail chegou ao funcionário com a ação corretiva. A origem é uma simulação, sinalizada no próprio alerta; o resultado vale como prova de integração IoT + AWS, não como medição física ou orientação agronômica.
 
-Metadados ausentes ou inválidos são apresentados como não informados. A avaliação local não substitui o horário de consulta. As demonstrações sintéticas não fazem consulta externa e, portanto, não recebem um horário fictício de consulta.
+---
 
-O upload é limitado a 1 MiB no widget e na leitura efetiva do worker. O CSV original é preservado; o parser analisa uma cópia temporária própria. Caminhos redirecionados por symlinks/junctions são recusados, e a limpeza verifica a identidade dos temporários criados. Essas verificações não substituem as permissões do sistema operacional contra processos locais com os mesmos direitos. Os resultados são prévias didáticas, sem nova validação da infraestrutura AWS ou de medições físicas.
+## Anexo — V1: criação do ambiente AWS (05/11/2026)
 
-## Observações de custo e limpeza
+Resumo da primeira versão, com prints selecionados da pasta `assets/bkp/aws-notifications/` (a pasta guarda o conjunto completo). O IP público usado na V1 não vale mais; os comandos atuais estão no passo a passo acima.
 
-Os recursos desta Parte 2 são **temporários**, só para evidência acadêmica:
+1. **Tópico SNS:** na região São Paulo, preenchi a criação do tópico tipo **Padrão (Standard)**, nome `farmtech-alertas-funcionarios`, exibição "Farmtech - Alertas Funcionários".
 
-- **EC2 `t3.micro` + EBS 8 GiB gp3** geram custo enquanto a instância estiver *running*.
-- **SNS** (e-mail) tem custo residual baixo no free tier acadêmico, mas o tópico e a assinatura também podem ser removidos após a correção.
-- Após capturar as evidências, eu **paro (`Stop`) ou termino (`Terminate`)** a EC2 `farmtech-alertas` (`i-049d8140797bf7c73`) para não deixar cobrança ociosa. O tear down pode ainda estar pendente no momento da leitura deste README — conferir no console EC2/SNS em `sa-east-1`.
-- A key pair `.pem` permanece só na minha máquina local; não vai para o Git.
-- Arquivos auxiliares de rascunho do portal (`PORTAL-AWS-TEMPORARIO.md`) devem ser apagados antes da entrega final, conforme o próprio plano da disciplina.
+   ![V1 — formulário de criação do tópico SNS Standard](../../assets/bkp/aws-notifications/Defini%C3%A7%C3%B5es%20do%20topico%20SNS.jpg)
 
-Calculadora de referência da disciplina (Fase 5): [AWS Pricing Calculator](https://calculator.aws) — a estimativa histórica da EC2+EBS (~US$ 19,86/mês) **não** inclui o SNS; o e-mail entra à parte.
+2. **Assinatura de e-mail:** criei a assinatura protocolo Email e confirmei pelo link recebido; a página do SNS mostrou "Subscription confirmed!" (dados e links ocultados no print).
+
+   ![V1 — assinatura confirmada](../../assets/bkp/aws-notifications/assinatura-confirmada.jpg)
+
+3. **Role IAM:** criei a função `farmtech-alertas` para EC2 (política de confiança `sts:AssumeRole` para `ec2.amazonaws.com`) com política em linha cujo `Resource` é apenas o ARN do tópico. No print, a ação da instrução está ocultada; a intenção documentada era somente `sns:Publish`.
+
+   ![V1 — política em linha restrita ao ARN do tópico](../../assets/bkp/aws-notifications/adicionand-permiss%C3%B5es.jpg)
+
+4. **EC2:** criei a instância `farmtech-alertas` (`i-049d8140797bf7c73`, `t3.micro`, `sa-east-1c`), que aparece **Executando**, ainda inicializando as verificações. Depois abri **Modificar função do IAM** e selecionei `farmtech-alertas` para associá-la à instância.
+
+   ![V1 — instância em execução](../../assets/bkp/aws-notifications/inst%C3%A2ncia%20em%20execu%C3%A7%C3%A3o.jpg)
+
+   ![V1 — seleção da função IAM na instância](../../assets/bkp/aws-notifications/alterar%20fun%C3%A7%C3%A3o%20IAM-2.jpg)
+
+5. **Deploy inicial:** montei uma pasta temporária com o pacote `farmtech_integracao`, os módulos do serviço e o `weather_forecast.py` da Fase 2, e enviei por `scp` (todos os arquivos com 100%).
+
+   ![V1 — envio dos códigos para a EC2](../../assets/bkp/aws-notifications/enviando-codigos-instancia.jpg)
+
+6. **Primeiro alerta (previsão):** rodei `python3.11 monitorar.py --cidade "Irecê" --enviar` na EC2 e o e-mail "FarmTech: Umidade prevista abaixo de 45% para o tomate" chegou ao Gmail em 05/11/2026. O MessageId registrado no README da V1 foi `9d74b71f-640f-56a0-8997-d479e8a93429`.
+
+   ![V1 — e-mail do alerta de previsão recebido](../../assets/bkp/aws-notifications/recebimento%20da%20mensagem.jpg)
+
+Na V1 o SSH ficou aberto para `0.0.0.0/0` (registrado na revisão do README original); na V2 restringi ao meu IP. A ação "ligar irrigação" registrada na V1 foi depois substituída por orientações que não comandam a bomba.
 
 ---
 
@@ -484,4 +457,4 @@ Calculadora de referência da disciplina (Fase 5): [AWS Pricing Calculator](http
 
 **FIAP — Faculdade de Informática e Administração Paulista**  
 FarmTech Solutions · Integração Fase 7 · Parte 2 (Alertas AWS)  
-Edemir Sufiatti · RM 571375 · branch `feature/alertas-aws-edemir`
+Edemir Sufiatti · RM 571375

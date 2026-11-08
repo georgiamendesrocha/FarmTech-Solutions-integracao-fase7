@@ -19,7 +19,7 @@
 
 **Coordenador:** André Godoi Chiovato
 
-> **Vídeo demonstrativo — Entrega principal:** `[(https://youtu.be/vq5WaDTVN0E)]`
+> **Vídeo demonstrativo — Entrega principal:** `https://youtu.be/vq5WaDTVN0E`
 >
 > **Vídeo demonstrativo — Ir Além:** `[Inserir link do YouTube]`
 

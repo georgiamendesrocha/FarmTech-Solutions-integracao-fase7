@@ -437,9 +437,9 @@ O serviço transforma dados em condições de atenção e orientações ao funci
 
 | Contexto | Funcionamento comprovado | Limite |
 |---|---|---|
-| **Implementação original** | Execução em EC2 e publicação/recebimento de e-mail SNS, documentados em **05/11/2026**, com previsão meteorológica | Não demonstra implantação das correções posteriores; veja a [validação complementar](#validação-aws--evidências-complementares) |
+| **Implementação original (V1)** | Criação do ambiente AWS, execução em EC2 e publicação/recebimento de e-mail SNS em **05/11/2026**, com previsão meteorológica | Alerta meteorológico; recursos reutilizados na V2. Veja a [validação de 08/11/2026](#validação-aws--evidências-complementares) |
 | **Integração atual** | CSV F2, cenários sintéticos e meteorologia são avaliados localmente; condição, ação, assunto e corpo aparecem na página 13 | A dashboard não possui envio real ao SNS |
-| **Serviço independente atual** | CLI mantém publicação opcional, somente com `--enviar`, configuração válida e infraestrutura autorizada | Testes locais usam mocks; a versão corrigida não foi validada novamente na AWS |
+| **Serviço independente atual (V2)** | CLI com publicação somente com `--enviar`; em **08/11/2026** fiz deploy manual de seis arquivos do serviço na EC2 e publiquei um alerta com dados dos sensores F2 | Validação AWS da entrada IoT com origem Wokwi declarada; os testes locais usam mocks |
 
 ```mermaid
 flowchart LR
@@ -451,26 +451,23 @@ flowchart LR
     CLI --> SNS["SNS · e-mail · execução original documentada"]
 ```
 
-A infraestrutura original documentada utiliza **Amazon Linux 2023, EC2 t3.micro, EBS gp3 de 8 GiB, região sa-east-1 e SNS Standard**, com IAM no contexto da execução EC2. O estado atual dos recursos remotos não foi consultado; capturas históricas não certificam configuração ou disponibilidade atuais.
+A infraestrutura criada na V1 utiliza **Amazon Linux 2023, EC2 t3.micro, região sa-east-1 (São Paulo) e SNS Standard**; o EBS gp3 de 8 GiB é registro histórico, não revalidado em 08/11. Na V2, a EC2 `farmtech-alertas` foi iniciada (3/3 verificações aprovadas), o SSH foi restrito ao IP do responsável e a role IAM `farmtech-alertas` estava associada; o conteúdo da política IAM não foi auditado nessa data. O diagrama acima foi mantido; a evolução V1/V2 está descrita nesta seção.
 
 ### Validação AWS — Evidências complementares
 
-**STATUS: PENDENTE DE COMPROVAÇÃO DOCUMENTAL**
+**STATUS: COMPROVADO EM 08/11/2026**
 
 **Responsável:** Edemir Sufiatti.
 
-O envio de notificações pelo Amazon SNS foi comprovado na execução original, utilizando dados meteorológicos.
+O envio pelo Amazon SNS foi comprovado na V1 (05/11/2026), com previsão meteorológica, e na V2 (08/11/2026), com dados dos sensores da Fase 2, conforme o requisito.
 
-A comprovação específica do envio utilizando dados dos sensores das Fases 1 ou 2, ou resultados da visão computacional da Fase 6, aguarda confirmação e documentação complementar do responsável.
+- **Fluxo:** firmware ESP32 da F2 no simulador Wokwi → CSV do coletor serial → `scp` para a EC2 → `monitorar.py --iot-csv` → tópico SNS Standard `farmtech-alertas-funcionarios` → e-mail.
+- **Leitura publicada:** recebida às 17:45:03 (Brasília), umidade **39,5%** (< 45%), 230 s de idade na publicação, dentro do limite de cinco minutos. Origem declarada `wokwi`: simulação, não medição física nem validação agronômica.
+- **Publicação:** MessageId `0fc7e8a7-03b2-5e11-82ec-8bcde1c7af3a`.
+- **Recebimento:** e-mail às 17:48 (Brasília), assunto "FarmTech [SIMULAÇÃO WOKWI]: Umidade do DHT22/protótipo abaixo de 45% para o tomate".
+- **Ação corretiva:** "Conferir no protótipo a irrigação prevista pela regra de umidade baixa. Não acionar bomba física com base neste alerta."
 
-**Campos reservados para atualização:**
-
-- Fonte dos dados utilizada:
-- Código responsável pelo processamento:
-- Registro da execução na AWS:
-- Evidência do envio e recebimento da notificação:
-- Ação corretiva apresentada:
-- Data da validação:
+A dashboard continua apenas com prévia local, sem envio ao SNS. Passo a passo, comandos, prints e anexo da V1: [README do serviço de alertas](servicos/fase7-alertas-aws/README.md).
 
 ### Regras e ações corretivas
 
@@ -492,19 +489,15 @@ O CSV preserva os onze campos `ts_iso,t_rel_ms,umidade,temp_c,ldr,ph_base,ph_cor
 
 A CLI controla repetição por **seis horas por tipo e local**, incluindo dispositivo/origem para IoT. Dry-run não altera esse estado. Na página, mudar fonte ou cenário invalida a avaliação anterior e exige novo clique, sem rede automática. Consulta à fonte, avaliação local e evento previsto possuem horários separados; metadados ausentes aparecem como indisponíveis.
 
-### Evidências da implementação original
+### Evidências da validação de 08/11/2026
 
-![Configuração histórica da EC2](assets/aws-notifications/criando%20instancia%20ec2-1.jpg)
+![Publicação SNS com MessageId a partir dos sensores F2](assets/aws-notifications/20-iot-publicado-sns-messageid.png)
 
-*Amazon Linux 2023, t3.micro e volume de 8 GiB na configuração original; não representa inspeção atual.*
+*Publicação na EC2 com a leitura Wokwi de 39,5% e o MessageId retornado pelo SNS.*
 
-![Configuração original do tópico SNS](assets/aws-notifications/Criando%20topico.jpg)
+![E-mail do alerta IoT recebido](assets/aws-notifications/21-email-alerta-iot-recebido.png)
 
-*Formulário do tópico SNS. O recebimento abaixo complementa a evidência de funcionamento histórico.*
-
-![Mensagem SNS recebida na execução original](assets/aws-notifications/mensgem-recebida.jpg)
-
-*Aviso original: umidade do ar prevista de 34%, evento de 05/11/2026 às 14:00 UTC. A orientação direta de irrigação visível é histórica: foi revisada no código local para exigir avaliação do solo. Não há evidência de implantação posterior dessa correção na AWS.*
+*E-mail recebido do SNS, identificado como simulação Wokwi. A criação do ambiente na V1 (05/11/2026) está documentada no anexo do [README do serviço](servicos/fase7-alertas-aws/README.md).*
 
 ### Demonstração segura
 

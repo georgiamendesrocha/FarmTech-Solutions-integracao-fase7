@@ -19,7 +19,7 @@
 
 **Coordenador:** André Godoi Chiovato
 
-> **Vídeo demonstrativo — Entrega principal:** `https://youtu.be/vq5WaDTVN0E`
+> [Vídeo demonstrativo — Entrega principal](https://youtu.be/vq5WaDTVN0E)
 >
 > **Vídeo demonstrativo — Ir Além:** `[Inserir link do YouTube]`
 
@@ -29,6 +29,7 @@
 - [Evolução das Fases 1 a 6](#evolução-nas-fases-1-a-6).
 - [Arquitetura](#arquitetura-geral) e [estrutura de diretórios](#estrutura-de-diretórios).
 - [Instalação e configuração](#pré-requisitos-instalação-e-configuração) e [execução](#como-iniciar-e-utilizar-a-aplicação).
+- [Solução de problemas e execução para o avaliador](#solução-de-problemas-e-execução-para-o-avaliador).
 - [Dashboard integrada](#fase-7--parte-1-dashboard-final-e-serviços-integrados).
 - [Indicadores, métricas e resultados](#indicadores-métricas-e-resultados-do-sistema-integrado).
 - [Evidências visuais](#demonstrações-visuais-da-dashboard).
@@ -58,7 +59,7 @@ Uma entrada local, uma página inicial e treze páginas funcionais, com as anál
 - **Código da implementação:** [servicos/fase7-alertas-aws/](servicos/fase7-alertas-aws/).
 - **Documentação técnica da Entrega 02, atualizada em 08/11/2026:** [servicos/fase7-alertas-aws/README.md](servicos/fase7-alertas-aws/README.md).
 
-Serviço independente com execução original em EC2/SNS documentada por capturas históricas. A evolução atual consome também o contrato dos sensores F2 e oferece prévias na dashboard, sem publicação SNS pela interface.
+Serviço independente com duas validações documentadas em EC2/SNS: V1, em **05/11/2026**, com alerta meteorológico, e V2, em **08/11/2026**, com alerta baseado nos sensores simulados da Fase 2 no Wokwi. A dashboard oferece prévias locais, sem publicação SNS pela interface.
 
 O sistema distingue dados acadêmicos, históricos de sensores, simulações, previsões externas e observações oficiais. Os resultados **não constituem validação agronômica, controle de irrigação em produção ou certificação dos modelos**.
 
@@ -139,7 +140,7 @@ Durante o uso, `.runtime/` recebe a base reconstruída, exportações, uploads t
 | IoT | ESP32, C++/Arduino, Wokwi, PlatformIO e PySerial nos fluxos próprios |
 | Análises | R executado explicitamente; fontes Open-Meteo, NOAA/USCRN, INMET e SIDRA |
 | Visão | Python 3.13.13, PyTorch 2.15.0, torchvision 0.29.2 e YOLOv5 local; TensorFlow/Keras no experimento CNN |
-| Mensageria original | EC2 Linux, IAM e SNS Standard; boto3 opcional no serviço independente |
+| Mensageria AWS (V1/V2) | EC2 Linux, IAM e SNS Standard; boto3 opcional no serviço independente |
 
 ## Pré-requisitos, instalação e configuração
 
@@ -219,13 +220,7 @@ Sem Oracle, selecione **CSV preservado**. Não há troca silenciosa de origem ap
 
 ### Visão computacional separada
 
-```powershell
-# Confirmar Python 3.13.13 antes de criar este ambiente
-py -3.13 --version
-py -3.13 -m venv servicos/fase6-visao/.venv-fase6
-& ./servicos/fase6-visao/.venv-fase6/Scripts/python.exe -m pip install -r servicos/fase6-visao/requirements.txt
-& ./servicos/fase6-visao/.venv-fase6/Scripts/python.exe -m pip check
-```
+Use um ambiente próprio da Fase 6, separado do F4. Para os comandos completos, escolha [A — ambiente virtual já existente](#a-ambiente-virtual-da-fase-6-já-existente) ou [B — instalação limpa do avaliador](#b-instalação-limpa-do-avaliador), na seção de solução de problemas. Isso evita reinstalar um ambiente funcional ou criar outro com o Python incorreto.
 
 Disponibilize um **checkout Git local, íntegro e confiável da YOLOv5**, na revisão `4add2aff6e3d926586a3eab4659f3b498dd444a1`, e informe seu diretório em `FARMTECH_YOLO_REPO`. Cache do Hub sem `.git` não satisfaz a verificação. A aplicação não baixa automaticamente código, modelos ou dependências.
 
@@ -259,10 +254,11 @@ O inicializador localiza automaticamente `.venv-f402` em `servicos/fase4-regress
 
 Selecionar um interpretador em **Python: Select Interpreter** no VS Code não configura necessariamente a variável `FARMTECH_FASE4_PYTHON`, usada pelo inicializador para localizar o Python da dashboard. Ambientes virtuais não são compartilhados automaticamente entre worktrees Git. Quando o ambiente da Fase 4 estiver em outra pasta de trabalho, informe o caminho do executável por essa variável.
 
-No PowerShell, a partir da raiz do projeto, o exemplo abaixo utiliza o ambiente local empregado no desenvolvimento. **Esse caminho é específico dessa máquina; ajuste-o à localização do ambiente da Fase 4 no seu computador.**
+No PowerShell, a partir da raiz do projeto, informe o executável de um ambiente F4 já existente no seu computador. O caminho é resolvido localmente, sem depender das pastas dos desenvolvedores:
 
 ```powershell
-$env:FARMTECH_FASE4_PYTHON = "C:\Users\Georgia\Desktop\farmtech-envio-fase7\servicos\fase4-regressao\.venv-f402\Scripts\python.exe"
+$pythonFase4Existente = Read-Host "Caminho completo do python.exe do ambiente F4 (sem aspas)"
+$env:FARMTECH_FASE4_PYTHON = (Resolve-Path -LiteralPath $pythonFase4Existente).Path
 
 python iniciar.py
 ```
@@ -286,6 +282,301 @@ Acesse `http://127.0.0.1:8501`. Porta ocupada não é reutilizada. No modo diret
 O carregamento das 153 leituras iniciais e a simulação são operações separadas. Na página **Sensores IoT**, **Iniciar simulação** habilita a geração de novas leituras sintéticas apenas na base de demonstração do modo integrado, após validar o banco. Use **Parar simulação** para interrompê-la. Um `DB_PATH` apontando para outro banco permite suas consultas, mas bloqueia esse controle de simulação; a ausência da base padrão recebe instruções de preparação. A simulação acrescenta registros e não é necessária para consultar o histórico inicial.
 
 Sem rede ou credenciais, permanecem disponíveis cálculos, CSVs, modelos/fontes oficiais locais e demonstrações de alertas. A visão exige seu ambiente e checkout. Open-Meteo precisa de HTTPS; Oracle precisa de rede e autenticação. Falta de pré-condições é informada sem simular sucesso externo.
+
+## Solução de problemas e execução para o avaliador
+
+Esta seção complementa a [Primeira execução](#primeira-execução), sem substituir seu roteiro de instalação. Execute os comandos no PowerShell, na raiz do clone, onde estão `iniciar.py` e `requirements.txt`. Não é necessário reproduzir a estrutura de pastas dos desenvolvedores.
+
+### Pré-requisitos e ambientes efetivamente utilizados
+
+Use Windows AMD64, PowerShell, Git disponível no `PATH`, navegador e Python com `venv` e `pip`. O código não fixa uma versão mínima numérica de Windows, PowerShell ou Git; os exemplos usam sintaxe compatível com PowerShell 5.1. A pasta do projeto precisa permitir gravação em `.runtime/`. A instalação de pacotes e a obtenção do checkout YOLO exigem internet ou uma preparação local equivalente; isso é separado das operações que podem funcionar offline depois.
+
+```powershell
+$PSVersionTable.PSVersion
+git --version
+Get-Command python, py, git -ErrorAction SilentlyContinue
+python --version
+py -0p
+Test-Path -LiteralPath ".\iniciar.py" -PathType Leaf
+```
+
+Espera-se uma versão do Git, os executáveis encontrados e `True` para `iniciar.py`. `py -0p` lista os Pythons registrados no launcher do Windows; se não listar uma versão necessária, não presuma que `py -3.11` ou `py -3.13` a localizará. Confira também o executável do ambiente escolhido: a versão de `python` no `PATH` pode ser diferente.
+
+| Uso | Requisito confirmado no projeto |
+|---|---|
+| Dashboard, CLI integrada, cálculos F1, integração F2/F3 e prévias locais F7 | **CPython 3.11.9 exato** no ambiente F4, com o [perfil básico](requirements.txt). Não é necessário criar um ambiente para cada um desses adaptadores. |
+| Inferência e avaliação YOLO integradas da F6 | Processo separado com **CPython 3.13.13 exato**, Windows AMD64/CPU e [dependências próprias](servicos/fase6-visao/requirements.txt). Outro patch 3.13 é recusado pelo worker. |
+| API/notebooks originais da F3 | O manifest original declara Python mínimo 3.11, mas esse fluxo é separado da consulta integrada. Não substitui a exigência 3.11.9 da dashboard. |
+| Notebooks e experimentos F5/F6 | Ambientes próprios, descritos nos READMEs das fases. O manifest F5 não fixa um patch Python. O Python 3.14.4 registrado em experimentos históricos da YOLO padrão não é o runtime da YOLO integrada. |
+| Publicador AWS independente | O [procedimento do serviço](servicos/fase7-alertas-aws/README.md) usa Python 3.11+ e boto3; a captura EC2 registra 3.11.18. Esse ambiente não é necessário para abrir a dashboard. |
+
+### Sequência recomendada e variáveis da sessão
+
+1. Na [Primeira execução](#primeira-execução), prepare o Python F4, instale o `requirements.txt` raiz e execute `pip check`. Oracle e F6 possuem preparações adicionais, opcionais para a abertura básica.
+2. Confira o banco com `python iniciar.py --status`; prepare a demonstração somente se faltar o destino padrão.
+3. Inicie pelo menu:
+
+```powershell
+python iniciar.py
+```
+
+Escolha **1** para iniciar, **0** para parar a instância iniciada por esse menu e **S** para sair. Sair também encerra essa instância. Use o endereço mostrado em `Dashboard ativo:`; a porta pode variar de 8501 a 8510. Abrir o servidor não comprova acesso a Oracle, AWS, R ou inferência YOLO.
+
+Variáveis definidas com `$env:` valem somente para aquele terminal e seus processos filhos. Configure `FARMTECH_FASE4_PYTHON`, `FARMTECH_FASE6_PYTHON`, `FARMTECH_YOLO_REPO`, `FARMTECH_RSCRIPT` e `DB_PATH`, quando necessárias, **antes de executar `python iniciar.py`**. Alterá-las em outro terminal não atualiza uma dashboard já aberta: pare, saia do controlador e inicie novamente no terminal configurado. Ativar um ambiente ou selecionar um interpretador no VS Code não substitui essas configurações.
+
+### Quando o Python da Fase 4 não for encontrado
+
+Descubra primeiro qual executável será selecionado:
+
+```powershell
+$pythonDashboard = if ($env:FARMTECH_FASE4_PYTHON) {
+    $env:FARMTECH_FASE4_PYTHON
+} else {
+    Join-Path (Get-Location).Path "servicos\fase4-regressao\.venv-f402\Scripts\python.exe"
+}
+$pythonDashboard
+Test-Path -LiteralPath $pythonDashboard -PathType Leaf
+if (Test-Path -LiteralPath $pythonDashboard -PathType Leaf) {
+    & $pythonDashboard --version
+    & $pythonDashboard -m pip check
+}
+```
+
+O esperado é `True`, **Python 3.11.9** e `No broken requirements found.`. O launcher confere a versão e a presença de módulos, mas não faz uma auditoria completa dos pins ou das dependências transitivas; `pip check` também não substitui a instalação pelo manifest correto.
+
+Se não houver ambiente local, confirme primeiro `py -3.11 --version` e prossiga somente com **3.11.9**. A criação prevista é:
+
+```powershell
+if (-not (Test-Path -LiteralPath ".\servicos\fase4-regressao\.venv-f402")) {
+    py -3.11 -m venv servicos/fase4-regressao/.venv-f402
+}
+```
+
+Depois use os comandos de instalação e verificação da [Primeira execução](#primeira-execução). Se a pasta já existir, mas estiver incompleta ou com outra versão, preserve-a e selecione um ambiente compatível. Não reinstale tudo apenas porque o `python` do `PATH` tem outra versão.
+
+Para reutilizar um ambiente externo, use o exemplo de [Como iniciar e utilizar a aplicação](#como-iniciar-e-utilizar-a-aplicação), que configura `FARMTECH_FASE4_PYTHON` com o caminho absoluto do `python.exe` escolhido. Repita o diagnóstico acima após a configuração. Uma variável incorreta tem prioridade e bloqueia o uso do ambiente local; para voltar ao padrão somente nesta sessão:
+
+```powershell
+Remove-Item Env:FARMTECH_FASE4_PYTHON -ErrorAction SilentlyContinue
+```
+
+Após alterar ou remover a variável, repita o bloco de diagnóstico para atualizar `$pythonDashboard`. Se a versão estiver correta e faltarem módulos, instale o perfil básico **nesse executável**, com `& $pythonDashboard -m pip install -r requirements.txt`, e repita `pip check`. Não use um `pip` solto, que pode pertencer a outro Python. Um ambiente existente que já atende ao perfil não precisa ser recriado.
+
+### Quando o banco demonstrativo não existir
+
+O diagnóstico completo depende primeiro do ambiente F4 válido:
+
+```powershell
+$env:DB_PATH
+Test-Path -LiteralPath ".\.runtime\demo\farmtech-demo.db" -PathType Leaf
+python iniciar.py --status
+```
+
+No JSON, examine `fase4.status`, `fase4.source.path` e `fase4.data.counts`. O esperado é `status: "ok"`; a saída do comando pode ter código zero mesmo com algum serviço `unavailable`, portanto leia os campos. A consulta não cria banco, não conecta Oracle e não executa YOLO.
+
+Se `DB_PATH` não estiver definida e o arquivo padrão não existir:
+
+```powershell
+if (-not (Test-Path -LiteralPath ".\.runtime\demo\farmtech-demo.db")) {
+    python iniciar.py --preparar-demo
+}
+python iniciar.py --status
+```
+
+A base recém-preparada deve informar **22 culturas, um sensor, 153 leituras, 2.200 amostras e zero previsões**. Previsões e simulações feitas depois podem alterar as contagens; isso não justifica apagar a base.
+
+`--preparar-demo` cria exclusivamente o destino padrão, a partir dos CSVs F4, e recusa qualquer destino já existente. Não prepara o caminho personalizado de `DB_PATH`. Para usar o padrão, remova uma configuração externa somente se essa for a intenção:
+
+```powershell
+Remove-Item Env:DB_PATH -ErrorAction SilentlyContinue
+```
+
+Para conservar um banco personalizado, confira seu caminho e schema; caminhos relativos de `DB_PATH` partem de `servicos/fase4-regressao/`. Em caso de `error` ou `invalid`, preserve o arquivo para diagnóstico. Não execute ingestões históricas ou exclusão de banco como reparo genérico. A preparação exige os CSVs preservados, permissão de escrita e suporte aos hard links usados na publicação da base; falhas nessas condições dependem de preparação local.
+
+### Quando aparecer “Inferência temporariamente indisponível”
+
+Na página **Visão Computacional**, abra **Detalhes técnicos para manutenção**. Também é possível consultar as mesmas pré-condições, sem inferência:
+
+```powershell
+Get-Item Env:FARMTECH_FASE6_PYTHON -ErrorAction SilentlyContinue
+python -X utf8 -B -c "import json; from farmtech_integracao.fase6 import infer_availability, availability; print(json.dumps({'inferencia': infer_availability().as_dict(), 'avaliacao': availability().as_dict()}, ensure_ascii=False, indent=2))"
+```
+
+| Indicador | Significado e providência |
+|---|---|
+| `python_existe` | Existe um arquivo no caminho Python F6 selecionado. Se for `False`, prepare o ambiente ou configure `FARMTECH_FASE6_PYTHON`. `True` não confirma versão ou bibliotecas. |
+| `checkpoint_existe` | Existe `servicos/fase6-visao/entrega_2/modelos/yolov5s_custom_exp60_best.pt`. Ele acompanha a entrega; arquivo ausente ou divergente exige conferir a integridade da cópia. |
+| `checkout_local` | Foram encontrados `.git` e `hubconf.py` no checkout selecionado. `True` não confirma a revisão, a integridade das fontes ou a autorização de acesso pelo Git. |
+
+Todos os indicadores podem ser `True` e a execução ainda falhar. A avaliação também verifica avaliador, quatro JPGs com rótulos de banana e quatro de milho; `runtime_validado: false` no diagnóstico informa que essa consulta **não executou** o runtime.
+
+Os dois erros observados correspondem a etapas diferentes:
+
+| Mensagem | Diagnóstico e ação |
+|---|---|
+| **“Inferência temporariamente indisponível neste ambiente”** | Consulte `FARMTECH_FASE6_PYTHON` e os indicadores acima. No caso confirmado, a variável não estava configurada e o executável padrão não estava disponível. Selecione um ambiente F6 existente ou prepare o cenário B; a variável pode ficar ausente quando o ambiente padrão local já existe. |
+| **“Dependências ou funções YOLO não disponíveis no ambiente validado”** | O processo foi acionado, mas houve falha de importação ou função indisponível. No caso confirmado, o Python global 3.13.13 não tinha `torch`, `torchvision` e `opencv-python`. Verifique as bibliotecas **no mesmo executável selecionado**; a mensagem também pode indicar dependências indiretas ou funções incompatíveis. |
+
+#### A. Ambiente virtual da Fase 6 já existente
+
+Antes de instalar novamente, procure o ambiente já preparado. O caminho padrão é `servicos/fase6-visao/.venv-fase6/Scripts/python.exe`. Para listar ambientes diretamente dentro de uma pasta conhecida, informe o diretório que os contém (por exemplo, a pasta do serviço F6 de outro clone):
+
+```powershell
+$pastaAmbientesFase6 = Read-Host "Pasta que contém seus ambientes virtuais F6 (sem aspas)"
+Get-ChildItem -LiteralPath $pastaAmbientesFase6 -Directory -Force | ForEach-Object {
+    $candidatoFase6 = Join-Path $_.FullName "Scripts\python.exe"
+    if (Test-Path -LiteralPath $candidatoFase6 -PathType Leaf) {
+        $candidatoFase6
+    }
+}
+```
+
+Essa busca examina somente as pastas filhas imediatas; se não houver saída, confira a pasta de busca ou informe diretamente o executável conhecido. `py -0p` localiza instalações registradas do Python, não todos os ambientes virtuais existentes.
+
+Selecione o `python.exe` do ambiente e execute os diagnósticos sem alterar os pacotes:
+
+```powershell
+$pythonFase6Existente = Read-Host "Caminho completo do python.exe do ambiente F6 (sem aspas)"
+$pythonFase6 = (Resolve-Path -LiteralPath $pythonFase6Existente).Path
+Test-Path -LiteralPath $pythonFase6 -PathType Leaf
+& $pythonFase6 -X utf8 -I -B -c "import sys, struct; print(sys.executable); print(sys.version.split()[0]); print('bits:', struct.calcsize('P') * 8); print('venv:', sys.prefix != sys.base_prefix)"
+& $pythonFase6 -X utf8 -I -B -c "import importlib.util; print({m: importlib.util.find_spec(m) is not None for m in ('torch', 'torchvision', 'cv2')})"
+& $pythonFase6 -m pip show torch torchvision opencv-python
+& $pythonFase6 -m pip check
+& $pythonFase6 -X utf8 -I -B -c "import torch, torchvision, cv2; from torchvision.ops import nms, box_iou; print('torch:', torch.__version__); print('torchvision:', torchvision.__version__); print('OpenCV:', cv2.__version__); print('CUDA:', torch.version.cuda)"
+```
+
+Espera-se `True` para o arquivo, **Python 3.13.13**, `bits: 64`, `venv: True` e os três módulos localizados. `opencv-python` é o nome da distribuição instalada pelo pip; seu módulo de importação é `cv2`. O manifest fixa `opencv-python==5.0.0.93`, enquanto o módulo pode informar `cv2.__version__ == "5.0.0"`, como no diagnóstico confirmado. Compare a distribuição com `pip show`, sem confundir esses dois identificadores.
+
+O perfil exige **torch 2.15.0 e torchvision 0.29.2 em CPU**; o ambiente funcional confirmado informou **2.15.0+cpu**, **0.29.2+cpu** e OpenCV **5.0.0**. `torch.version.cuda` deve ser `None`, e `pip check` deve terminar com `No broken requirements found.`. Módulos localizados, metadados e imports são verificações complementares: não substituem a inferência com checkout e checkpoint válidos. Se uma verificação falhar, não considere o ambiente pronto.
+
+Depois de conferir o ambiente e o [checkout YOLO](#disponibilizar-o-checkout-yolo-e-conferir-os-arquivos), configure o executável antes de iniciar a dashboard:
+
+```powershell
+$env:FARMTECH_FASE6_PYTHON = $pythonFase6
+$env:FARMTECH_FASE6_PYTHON
+python iniciar.py
+```
+
+Se a dashboard já estiver aberta, use **0** para pará-la e **S** para sair do controlador; então configure a variável no terminal e execute novamente `python iniciar.py`, opção **1**. A definição com `$env:` é **temporária**, válida somente para aquela sessão do PowerShell e seus processos filhos. Em outro terminal ou após fechar a sessão, configure-a novamente; uma dashboard em execução não recebe alterações feitas em outro processo.
+
+No diagnóstico funcional informado, apontar para o Python global 3.13.13 habilitou a página porque `python_existe` passou a ser verdadeiro, mas a análise falhou pela falta das bibliotecas. A correção foi selecionar o ambiente virtual F6 que já tinha as dependências e reiniciar a dashboard; **a inferência funcionou nesse ambiente**. Isso confirma a reutilização daquele ambiente, sem comprovar uma instalação limpa. Se o ambiente existente funciona e atende aos requisitos, não é necessário recriá-lo.
+
+#### B. Instalação limpa do avaliador
+
+Para um avaliador sem ambiente F6, use um ambiente virtual próprio, separado do F4 e fora do checkout YOLO. O arquivo disponível para essa preparação é [servicos/fase6-visao/requirements.txt](servicos/fase6-visao/requirements.txt); não há um perfil YOLO mínimo separado. Ele inclui o índice adicional CPU do PyTorch, os pins YOLO e as dependências de CNN/notebook, como TensorFlow/Keras. O `requirements.txt` da raiz prepara a dashboard, não a F6.
+
+Disponibilize primeiro **CPython 3.13.13 para Windows AMD64**. `py -0p` e `py -3.13 --version` ajudam a localizar e conferir uma instalação registrada. Se o launcher não a encontrar, informe o caminho do interpretador base instalado no computador do avaliador; não use outro patch apenas porque pertence à família 3.13.
+
+Na raiz do projeto, o bloco abaixo valida o interpretador base, recusa uma pasta de ambiente preexistente e prepara o ambiente isolado:
+
+```powershell
+$pythonBaseFase6 = Read-Host "Caminho completo do Python base 3.13.13 (sem aspas)"
+$pythonBaseFase6 = (Resolve-Path -LiteralPath $pythonBaseFase6).Path
+& $pythonBaseFase6 -X utf8 -I -B -c "import sys, struct; assert sys.version_info[:3] == (3, 13, 13), 'Python 3.13.13 exigido'; assert struct.calcsize('P') == 8, 'Python de 64 bits exigido'; print('Interpretador base F6 conferido')"
+if ($LASTEXITCODE -ne 0) { throw "Corrija o interpretador base antes de criar o ambiente." }
+
+$ambienteNovoFase6 = ".\servicos\fase6-visao\.venv-fase6"
+if (Test-Path -LiteralPath $ambienteNovoFase6) {
+    throw "A pasta do ambiente já existe. Preserve-a e use o cenário A."
+}
+& $pythonBaseFase6 -m venv $ambienteNovoFase6
+if ($LASTEXITCODE -ne 0) { throw "A criação do ambiente F6 falhou." }
+
+$pythonFase6 = (Resolve-Path -LiteralPath (Join-Path $ambienteNovoFase6 "Scripts\python.exe")).Path
+& $pythonFase6 -m pip install -r ".\servicos\fase6-visao\requirements.txt"
+if ($LASTEXITCODE -ne 0) { throw "A instalação das dependências F6 não foi concluída." }
+```
+
+Com `$pythonFase6` definido, execute os comandos de versão, módulos, `pip show`, `pip check` e imports do [cenário A](#a-ambiente-virtual-da-fase-6-já-existente), sem repetir a busca. Só depois configure `FARMTECH_FASE6_PYTHON` e inicie a dashboard, como indicado naquele cenário. A criação do ambiente não fornece o checkout YOLO: conclua também a preparação da próxima subseção.
+
+**Instalação limpa ainda não validada:** o sucesso informado ocorreu em um ambiente virtual já existente. A reprodução do cenário B continua dependente da disponibilidade de Python 3.13.13 Windows AMD64, das wheels compatíveis com todos os pins e dependências transitivas, dos índices de pacotes e do checkout Git íntegro na revisão exigida. O manifest é uma lista selecionada, não um lock completo. Falha de resolução, download ou carregamento exige preparação/correção técnica do ambiente; não se resolve habilitando apenas o botão ou instalando o perfil F4.
+
+#### Disponibilizar o checkout YOLO e conferir os arquivos
+
+O código YOLOv5 não acompanha este repositório. É preciso um checkout Git local na revisão **`4add2aff6e3d926586a3eab4659f3b498dd444a1`**, com fontes/configurações íntegras. Para obter uma cópia própria com internet, o exemplo abaixo usa uma pasta no perfil do avaliador e só clona se ela não existir:
+
+```powershell
+$checkoutYolo = Join-Path $env:USERPROFILE "yolov5-validacao-fase6"
+if (-not (Test-Path -LiteralPath $checkoutYolo)) {
+    git clone https://github.com/ultralytics/yolov5.git "$checkoutYolo"
+    if ($LASTEXITCODE -ne 0) { throw "Não foi possível obter o checkout YOLO." }
+    git -C "$checkoutYolo" checkout --detach 4add2aff6e3d926586a3eab4659f3b498dd444a1
+    if ($LASTEXITCODE -ne 0) { throw "Não foi possível selecionar a revisão exigida." }
+}
+$env:FARMTECH_YOLO_REPO = (Resolve-Path -LiteralPath $checkoutYolo).Path
+git -C "$env:FARMTECH_YOLO_REPO" rev-parse HEAD
+git -C "$env:FARMTECH_YOLO_REPO" status --porcelain --untracked-files=all --ignored=matching -- "*.py" "*.yaml" "*.yml" "*.txt" "*.toml" "*.cfg" "*.ini" "*.json" "*.pyd" "*.so" "*.pth"
+```
+
+Se já houver um checkout próprio em outra pasta, atribua seu caminho absoluto a `FARMTECH_YOLO_REPO` em vez de clonar novamente. O primeiro comando Git de diagnóstico deve imprimir o SHA completo acima; o segundo deve ficar sem saída para as fontes/configurações verificadas. O exemplo não altera uma cópia preexistente: uma revisão diferente precisa ser preparada separadamente.
+
+Não coloque o ambiente virtual dentro do checkout YOLO: seus arquivos Python/configurações podem fazer a verificação de integridade recusar a execução. Cache do Hub sem `.git` não basta. Se o Git recusar o acesso, inclusive por propriedade da pasta (`dubious ownership`), use uma cópia própria acessível ao avaliador; não interprete `checkout_local: true` como validação Git concluída.
+
+Confira também o peso customizado sem carregá-lo:
+
+```powershell
+(Get-FileHash -Algorithm SHA256 -LiteralPath ".\servicos\fase6-visao\entrega_2\modelos\yolov5s_custom_exp60_best.pt").Hash -eq "93c086ad8e369cc295dced96b9d48db1524226207e82ab514148f02decad2f61"
+```
+
+Espera-se `True`. Checkpoint customizado, modelo CNN, imagens e rótulos de teste acompanham o projeto. Os pesos padrão `entrega_2/yolov5s.pt` e `entrega_2/yolov5su.pt` não acompanham esta cópia versionada; são de outros experimentos e não são necessários à inferência customizada integrada. O runtime não baixa checkout, pesos nem dependências automaticamente.
+
+#### Reproduzir a avaliação das oito imagens
+
+Com F4, F6 e checkout preparados, reinicie a dashboard no terminal configurado. Na página **Visão Computacional → Avaliação histórica: oito imagens de teste**, clique em **Avaliar YOLO customizada**. Alternativamente, pela CLI integrada:
+
+```powershell
+python iniciar.py --avaliar-yolo --yolo-repo "$env:FARMTECH_YOLO_REPO"
+```
+
+O resultado esperado é `status: "ok"`, `data.total_imagens: 8` e métricas para banana e milho. O worker usa Python 3.13.13, CPU, tamanho 640, confiança 0,25 e IoU de associação 0,50; confere revisão, fontes, hash, entradas e classes. Oito imagens se referem ao teste preservado, com quatro por classe. Essa ação produz **uma nova avaliação desse conjunto**, sem treinamento; tempos e resultados devem ser identificados como da nova execução, sem prometer os números históricos.
+
+Para upload, use JPG/PNG de até 5 MiB, com no máximo 4096 pixels por dimensão. Essa inferência usa o mesmo ambiente F6, mas não depende da presença das oito imagens de teste.
+
+### Testes rápidos e falhas de inicialização
+
+Depois de resolver o ambiente F4, estas ações locais exercitam os adaptadores sem Oracle ou AWS:
+
+```powershell
+python iniciar.py --gestao --forma retangulo --medidas 100 50 --cultura Soja --espacamento 0.5
+python iniciar.py --consultar-fase3 csv
+```
+
+Espera-se `status: "ok"`, com o cálculo solicitado e a consulta explicitamente identificada como CSV. Para testes existentes do launcher e dos contratos F6, use o `$pythonDashboard` selecionado no diagnóstico acima:
+
+```powershell
+& $pythonDashboard -X utf8 -B -m unittest discover -s tests/integracao -p test_launcher.py -v
+& $pythonDashboard -X utf8 -B -m unittest discover -s tests/integracao -p test_fase6.py -v
+```
+
+O esperado é `OK`. Esses testes usam fixtures/mocks; passar neles não comprova inferência ou disponibilidade externa. Os demais comandos e limites continuam em [Reprodução dos testes e validações](#reprodução-dos-testes-e-validações). A suíte completa dos alertas precisa também do objeto Git local `d9dabed`; uma cópia sem histórico pode impedir esse teste.
+
+Se a opção 1 falhar, confira a mensagem do controlador e, após uma tentativa que tenha criado o log:
+
+```powershell
+Get-Content -LiteralPath ".\.runtime\logs\dashboard.log" -Tail 24
+```
+
+Ausência do log pode indicar que Python ou banco foram recusados antes de iniciar o Streamlit. Se a porta estiver ocupada, use o menu, que procura outra porta livre; no modo direto, uma porta ocupada é recusada. Para corrigir variáveis ou encerrar uma instância, use 0/S no controlador que a iniciou.
+
+### Dependências externas e alternativas de demonstração
+
+| Funcionalidade | Preparação ou acesso adicional | Alternativa quando indisponível |
+|---|---|---|
+| Gestão, CSV F3, análises F4 e fontes oficiais locais | Ambiente F4 e arquivos preservados; banco compatível nas páginas que o consultam | Usar o banco demonstrativo e as cópias locais. Dados Oficiais lê os CSVs preservados; não representa nova coleta externa. |
+| Open-Meteo | Internet/HTTPS para geocodificação e previsão | Cenários meteorológicos sintéticos da página Alertas, identificados como demonstração; não apresentar uma previsão antiga como consulta atual. |
+| Oracle | [Perfil Oracle](#oracle-opcional), rede, RM/senha/DSN válidos e permissões/tabela na instituição | Escolher **CSV preservado** na página Consultas e Oracle. Não há troca silenciosa de fonte. |
+| Nova captura dos sensores F2 | PySerial, fonte serial/COM ou Wokwi/RFC2217 ativo; PlatformIO/toolchain ESP32 para compilar o firmware | Ler o CSV histórico ou usar cenário sintético, com a origem indicada. Não declarar nova captura de hardware. |
+| Validação R F2 | R/Rscript instalado e arquivos F2; o validador integrado usa pacotes base de R | Consultar resultados preservados ou demonstrar CSV/alertas sem executar R. Scripts originais de outras fases podem exigir pacotes próprios. |
+| YOLO integrada | Ambiente F6, checkout externo, Git, peso customizado e entradas conferidas | Apresentar capturas/métricas como **evidências históricas**, mantendo a indicação de inferência indisponível nesta execução. |
+| SNS → e-mail | Publicador independente, boto3, internet, recursos AWS, permissões, tópico e assinatura confirmada | Página Alertas oferece avaliação e prévia local sem envio. As capturas AWS documentam as validações anteriores; não comprovam um novo envio. |
+| Rekognition — Ir Além 1 | Acesso manual ao console AWS e internet; não há cliente integrado na dashboard | Consultar capturas e JSONs do experimento preservado, sem declarar nova chamada à AWS. |
+| Notebooks, treinamento e fluxos originais F5/F6 | Ambientes próprios, arquivos e serviços descritos nos READMEs; Colab/Drive/GPU conforme o experimento | Examinar notebooks/resultados preservados. Preparar a dashboard ou o Python F6 não reproduz automaticamente esses treinamentos. |
+
+Ambientes virtuais, checkout YOLO, credenciais, recursos de nuvem e o banco gerado em `.runtime/` não são entregues prontos pelo Git. A documentação orienta a preparação; ela não corrige incompatibilidades de wheels, falta do Python exato, permissões ou indisponibilidade de serviços externos.
+
+Na revisão documental anterior, foram conferidos o código, os diagnósticos locais e os comandos existentes; **não foi executada instalação limpa**. No ambiente disponível, faltavam os ambientes F4/F6 locais e o launcher informou a falta do Python F4. A base local existente foi inspecionada sem alteração; o diagnóstico F6 confirmou arquivos preservados, mas não validou execução. Os 20 testes do launcher e 13 de contratos F6 passaram no Python 3.14.4 disponível, com fixtures/mocks, sem iniciar uma dashboard real, instalar dependências ou executar inferência.
+
 
 ## Fase 7 — Parte 1: dashboard final e serviços integrados
 
@@ -374,10 +665,11 @@ As capturas registram sessões específicas. Filtros, dados e disponibilidade po
 
 ### Acervo completo de evidências
 
-As imagens incorporadas neste README são uma seleção representativa. Os diretórios abaixo reúnem as demais evidências da dashboard e da implementação AWS histórica:
+As imagens incorporadas neste README são uma seleção representativa. Os diretórios abaixo reúnem as demais evidências da dashboard e das validações AWS V1 e V2:
 
 - [Capturas da dashboard integrada](docs/evidencias/).
-- [Capturas históricas tratadas da infraestrutura e mensageria AWS](assets/aws-notifications/).
+- [Capturas da validação AWS V2 — sensores simulados da Fase 2 (08/11/2026)](assets/aws-notifications/).
+- [Capturas históricas da validação AWS V1 — alerta meteorológico (05/11/2026)](assets/bkp/aws-notifications/).
 
 ### Serviços e gestão agrícola
 
@@ -439,7 +731,7 @@ O serviço transforma dados em condições de atenção e orientações ao funci
 |---|---|---|
 | **Implementação original (V1)** | Criação do ambiente AWS, execução em EC2 e publicação/recebimento de e-mail SNS em **05/11/2026**, com previsão meteorológica | Alerta meteorológico; recursos reutilizados na V2. Veja a [validação de 08/11/2026](#validação-aws--evidências-complementares) |
 | **Integração atual** | CSV F2, cenários sintéticos e meteorologia são avaliados localmente; condição, ação, assunto e corpo aparecem na página 13 | A dashboard não possui envio real ao SNS |
-| **Serviço independente atual (V2)** | CLI com publicação somente com `--enviar`; em **08/11/2026** fiz deploy manual de seis arquivos do serviço na EC2 e publiquei um alerta com dados dos sensores F2 | Validação AWS da entrada IoT com origem Wokwi declarada; os testes locais usam mocks |
+| **Serviço independente atual (V2)** | CLI com publicação somente com `--enviar`; em **08/11/2026**, Edemir Sufiatti fez o deploy manual de seis arquivos do serviço na EC2 e publicou um alerta baseado nos sensores simulados da Fase 2 | Validação pontual AWS da entrada IoT com origem Wokwi declarada; os testes locais usam mocks |
 
 ```mermaid
 flowchart LR
@@ -448,18 +740,18 @@ flowchart LR
     Regras --> Mensagem["Condição · ação · assunto e corpo"]
     Mensagem --> Local["Dashboard: prévia local"]
     Mensagem --> CLI["CLI independente: envio explícito e autorizado"]
-    CLI --> SNS["SNS · e-mail · execução original documentada"]
+    CLI --> SNS["SNS · e-mail · V1 meteorologia / V2 sensores simulados F2"]
 ```
 
-A infraestrutura criada na V1 utiliza **Amazon Linux 2023, EC2 t3.micro, região sa-east-1 (São Paulo) e SNS Standard**; o EBS gp3 de 8 GiB é registro histórico, não revalidado em 08/11. Na V2, a EC2 `farmtech-alertas` foi iniciada (3/3 verificações aprovadas), o SSH foi restrito ao IP do responsável e a role IAM `farmtech-alertas` estava associada; o conteúdo da política IAM não foi auditado nessa data. O diagrama acima foi mantido; a evolução V1/V2 está descrita nesta seção.
+A infraestrutura criada na V1 utiliza **Amazon Linux 2023, EC2 t3.micro, região sa-east-1 (São Paulo) e SNS Standard**; o EBS gp3 de 8 GiB é registro histórico, não revalidado em 08/11. Na V2, a EC2 `farmtech-alertas` foi iniciada (3/3 verificações aprovadas), o SSH foi restrito ao IP do responsável e a role IAM `farmtech-alertas` estava associada; o conteúdo da política IAM não foi auditado nessa data. O diagrama resume as validações V1 e V2, sem comprovar disponibilidade contínua dos recursos AWS.
 
 ### Validação AWS — Evidências complementares
 
-**STATUS: COMPROVADO EM 08/11/2026**
+**STATUS: VALIDAÇÃO PONTUAL COMPROVADA EM 08/11/2026**
 
 **Responsável:** Edemir Sufiatti.
 
-O envio pelo Amazon SNS foi comprovado na V1 (05/11/2026), com previsão meteorológica, e na V2 (08/11/2026), com dados dos sensores da Fase 2, conforme o requisito.
+O envio pelo Amazon SNS foi comprovado na V1 (05/11/2026), com previsão meteorológica, e na V2 (08/11/2026), com dados dos sensores simulados da Fase 2 no Wokwi, conforme o requisito.
 
 - **Fluxo:** firmware ESP32 da F2 no simulador Wokwi → CSV do coletor serial → `scp` para a EC2 → `monitorar.py --iot-csv` → tópico SNS Standard `farmtech-alertas-funcionarios` → e-mail.
 - **Leitura publicada:** recebida às 17:45:03 (Brasília), umidade **39,5%** (< 45%), 230 s de idade na publicação, dentro do limite de cinco minutos. Origem declarada `wokwi`: simulação, não medição física nem validação agronômica.
@@ -590,7 +882,7 @@ Os documentos indicam comandos adicionais e limites. Avaliação YOLO real e an�
 - Uploads/workers têm limites e validações. Visão aceita JPG/PNG de até **5 MiB**, com limite de **4096 pixels por dimensão** no worker. Código e pesos locais devem ser confiáveis; isolamento de processo não é sandbox universal.
 - Há viés no protocolo histórico F4, teste visual pequeno e falsos positivos YOLO. Os modelos e as recomendações não autorizam atuação física automática.
 - Fontes oficiais mantêm locais, períodos e unidades próprios; não validam automaticamente sensores simulados ou recomendações.
-- A execução AWS original é histórica. Não foram demonstrados deploy das correções posteriores ou funcionamento remoto atual. A comprovação do envio com sensores ou visão computacional está descrita em [Validação AWS — Evidências complementares](#validação-aws--evidências-complementares). Recursos podem gerar custos e exigem gestão pelo responsável.
+- A V1 demonstrou o alerta meteorológico em **05/11/2026**. Na validação pontual de **08/11/2026**, documentada por Edemir Sufiatti, a V2 demonstrou o deploy manual do serviço, a publicação do alerta baseado nos sensores simulados da Fase 2 no SNS, o recebimento do e-mail com a ação corretiva recomendada. As evidências não comprovam disponibilidade contínua da AWS. Veja [Validação AWS — Evidências complementares](#validação-aws--evidências-complementares). Recursos podem gerar custos e exigem gestão pelo responsável.
 
 ## Documentação complementar e repositórios originais
 
@@ -601,7 +893,7 @@ Os documentos indicam comandos adicionais e limites. Avaliação YOLO real e an�
 | [Validação inicial](docs/VALIDACAO.md) | Execuções e limitações da integração |
 | [Auditoria consolidada](docs/AUDITORIA_LOTE1.md) | Correções e verificações posteriores |
 | [Complemento C++/YOLO](docs/VALIDACAO_COMPLEMENTAR_CPP_YOLO.md) | Compilação host e inferências reais |
-| [Alertas AWS](servicos/fase7-alertas-aws/README.md) | Contrato IoT, regras, mensagens e execução original |
+| [Alertas AWS](servicos/fase7-alertas-aws/README.md) | Contrato IoT, regras, mensagens e validações V1 (alerta meteorológico, 05/11/2026) e V2 (sensores simulados F2, 08/11/2026) |
 | [Relatório F4](servicos/fase4-regressao/document/relatorio.md) | Modelos, fontes oficiais e banco |
 | [Rastreabilidade F2](servicos/fase2-iot/document/RASTREABILIDADE_F2.md) | Contrato dos sensores e materiais preservados |
 

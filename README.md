@@ -21,7 +21,7 @@
 
 > [Vídeo demonstrativo — Entrega principal](https://youtu.be/vq5WaDTVN0E)
 >
-> **Vídeo demonstrativo — Ir Além:** `[Inserir link do YouTube]`
+> [Vídeo demonstrativo — Ir Além 1: Amazon Rekognition](https://youtu.be/pzWuTnAOEr4)
 
 ## Sumário
 
@@ -817,7 +817,7 @@ Atividade exploratória com imagens de milho e banana utilizando **Amazon Rekogn
 
 [**Acessar documentação completa do Ir Além 1**](IR-ALEM/ir-alem-1-rekognition/README.md)
 
-**Vídeo demonstrativo:** pendente de gravação e publicação no YouTube como não listado, com duração máxima de quatro minutos.
+[Vídeo demonstrativo — Ir Além 1: Amazon Rekognition](https://youtu.be/pzWuTnAOEr4)
 
 ## Reprodução dos testes e validações
 

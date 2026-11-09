@@ -2,6 +2,8 @@
 
 Atividade acadêmica da **FIAP — Faculdade de Informática e Administração Paulista**. Este documento registra o experimento exploratório de reconhecimento de milho e banana com o Amazon Rekognition e sua comparação conceitual com a visão computacional da Fase 6.
 
+[Vídeo demonstrativo — Ir Além 1: Amazon Rekognition](https://youtu.be/pzWuTnAOEr4)
+
 ## Objetivo e contexto
 
 O objetivo do Ir Além 1 é explorar um serviço de visão computacional gerenciado na AWS, interpretar seus rótulos, níveis de confiança e localizações e discutir sua utilidade para a agricultura. A atividade complementa a FarmTech Solutions com uma análise de reconhecimento de produtos agrícolas, incluindo um caso de identificação incorreta.
